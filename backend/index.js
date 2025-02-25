@@ -1,14 +1,19 @@
-const express = require('express');
-const mongoose = require('mongoose');
+import express, { json } from 'express';
+import { connect } from 'mongoose';
+import userRoutes from './routes/UserRoute.js';
+import AuthRoute from './routes/AuthRoute.js';
+import dotenv from 'dotenv';
+dotenv.config();
+
 const app = express();
 
 // Middleware to parse JSON
-app.use(express.json());
+app.use(json());
 
 // MongoDB connection
-const mongoURI = 'mongodb+srv://it22219534:Revup1234@car.y99yj.mongodb.net/?retryWrites=true&w=majority&appName=Car';
+const mongoURI = process.env.mongo_URI;
 
-mongoose.connect(mongoURI)
+connect(mongoURI)
   .then(() => {
     console.log('MongoDB connected successfully');
     // Add a route to verify the connection
@@ -27,6 +32,21 @@ mongoose.connect(mongoURI)
 // Basic route
 app.get('/', (req, res) => {
   res.send('Hello from Node.js backend!');
+});
+
+// User-related Routes
+app.use('/api/user', userRoutes);
+app.use('/api/auth', AuthRoute);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+  res.status(statusCode).json({
+    success: false,
+    statusCode,
+    message,
+  });
 });
 
 // Start the server
