@@ -3,12 +3,26 @@ import { connect } from 'mongoose';
 import userRoutes from './routes/UserRoute.js';
 import AuthRoute from './routes/AuthRoute.js';
 import dotenv from 'dotenv';
+import cors from 'cors'; // Import the cors package
+import cookieParser from 'cookie-parser';
+
 dotenv.config();
 
 const app = express();
 
 // Middleware to parse JSON
 app.use(json());
+app.use(cookieParser());
+
+// Enable CORS with specific configuration for credentials
+const corsOptions = {
+  origin: 'http://localhost:5173', // Specify the exact frontend origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+  credentials: true, // Enable credentials (cookies, authorization headers)
+};
+
+app.use(cors(corsOptions)); // Apply the configured CORS middleware
 
 // MongoDB connection
 const mongoURI = process.env.mongo_URI;

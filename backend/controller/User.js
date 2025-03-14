@@ -4,8 +4,9 @@ import sendMail from "../middleware/sendMail.js";
 import errorHandler from "../utils/error.js";
 import multer, { memoryStorage } from "multer";
 import sharp from "sharp";
-import TempUserStore from "../middleware//tempUserStore.js"; // Corrected path and default import
+import TempUserStore from "../middleware/tempUserStore.js"; // Corrected path and default import
 import convertImageToBase64 from "../middleware/Base64.js";
+import jwt from "jsonwebtoken"; // Added jsonwebtoken import
 
 // Destructure the functions from TempUserStore
 const { storeTempUser, getTempUser, clearTempUser } = TempUserStore;
@@ -27,11 +28,11 @@ const signup = async (req, res, next) => {
       // Check if a user with the given email already exists
       const normalizedEmail = email.toLowerCase();
 
-      // Check if a user with the given email already exists
       let existingUser = await User.findOne({ email: normalizedEmail });
       if (existingUser) {
         return next(errorHandler(400, "User Email Already Exists"));
       }
+
       const defaultAvatarURL =
         "https://tse2.mm.bing.net/th?id=OIP.eCrcK2BiqwBGE1naWwK3UwHaHa&pid=Api&P=0&h=180";
       let avatarBase64;
@@ -43,15 +44,12 @@ const signup = async (req, res, next) => {
             .resize(300, 300) // Resize to 300x300 pixels
             .jpeg({ quality: 80 }) // Compress to 80% quality
             .toBuffer();
-          avatarBase64 = `data:${
-            req.file.mimetype
-          };base64,${compressedImageBuffer.toString("base64")}`;
+          avatarBase64 = `data:${req.file.mimetype};base64,${compressedImageBuffer.toString("base64")}`;
         } catch (imageError) {
           console.error("Error compressing image:", imageError);
           return next(errorHandler(500, "Image processing error"));
         }
       } else {
-        // Use default avatar URL if no file is uploaded
         avatarBase64 = defaultAvatarURL;
       }
 
@@ -88,6 +86,7 @@ const signup = async (req, res, next) => {
 
       return res.status(200).json({ message: "OTP sent to your email" });
     } catch (error) {
+      console.error("Signup Error:", error); // Added for debugging
       next(error);
     }
   });
@@ -123,7 +122,7 @@ const verifyUser = async (req, res, next) => {
     }
 
     const newUser = new User({
-      avatar: tempUser.avatar, // Now storing Base64 string
+      avatar: tempUser.avatar,
       first_name: tempUser.first_name,
       last_name: tempUser.last_name,
       email: tempUser.email,
@@ -136,6 +135,7 @@ const verifyUser = async (req, res, next) => {
 
     return res.status(200).json({ message: "User Registration Success" });
   } catch (error) {
+    console.error("Verify User Error:", error); // Added for debugging
     next(error);
   }
 };
@@ -173,6 +173,7 @@ const resendOtp = async (req, res, next) => {
 
     return res.status(200).json({ message: "OTP sent to your email" });
   } catch (error) {
+    console.error("Resend OTP Error:", error); // Added for debugging
     next(error);
   }
 };
@@ -186,6 +187,7 @@ const signin = async (req, res, next) => {
   }
 
   try {
+    console.log("Request Body:", req.body); // Added for debugging
     const normalizedEmail = email.toLowerCase();
 
     const validUser = await User.findOne({ email: normalizedEmail });
@@ -193,6 +195,7 @@ const signin = async (req, res, next) => {
       return next(errorHandler(404, "Invalid Credentials"));
     }
 
+    console.log("Found User:", validUser); // Added for debugging
     const validPassword = await compare(password, validUser.password);
     if (!validPassword) {
       return next(errorHandler(405, "Invalid Credentials"));
@@ -202,7 +205,7 @@ const signin = async (req, res, next) => {
     validUser.lastLogin = new Date();
     await validUser.save();
 
-    const token = sign({ id: validUser._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: validUser._id }, process.env.JWT_SECRET, {
       expiresIn: "1d",
     });
 
@@ -214,8 +217,10 @@ const signin = async (req, res, next) => {
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
+    console.log("Response Data:", rest); // Added for debugging
     res.status(200).json(rest);
   } catch (error) {
+    console.error("Signin Error:", error); // Added for debugging
     next(error);
   }
 };
@@ -230,7 +235,7 @@ const google = async (req, res, next) => {
       user.lastLogin = new Date();
       await user.save();
 
-      const token = sign({ id: user._id }, process.env.JWT_SECRET);
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
       const { password, ...rest } = user._doc;
 
       return res
@@ -247,10 +252,16 @@ const google = async (req, res, next) => {
         Math.random().toString(36).slice(-8);
       const hashedPassword = hashSync(generatedPassword, 10);
 
-      const avatarUrl =
-        googlePhotoUrl && googlePhotoUrl.startsWith("https")
-          ? await convertImageToBase64(googlePhotoUrl)
-          : null;
+      let avatarUrl = null;
+      if (googlePhotoUrl && googlePhotoUrl.startsWith("https")) {
+        try {
+          avatarUrl = await convertImageToBase64(googlePhotoUrl);
+          console.log("Converted avatar to base64:", avatarUrl.substring(0, 50)); // Debug first 50 chars
+        } catch (conversionError) {
+          console.error("Failed to convert image to base64:", conversionError);
+          avatarUrl = "https://tse2.mm.bing.net/th?id=OIP.eCrcK2BiqwBGE1naWwK3UwHaHa&pid=Api&P=0&h=180"; // Fallback
+        }
+      }
 
       const newUser = new User({
         first_name,
@@ -263,7 +274,7 @@ const google = async (req, res, next) => {
       });
 
       await newUser.save();
-      const token = sign({ id: newUser._id }, process.env.JWT_SECRET);
+      const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET);
       const { password, ...rest } = newUser._doc;
 
       return res
@@ -276,6 +287,7 @@ const google = async (req, res, next) => {
         .json(rest);
     }
   } catch (error) {
+    console.error("Google Signin Error:", error);
     next(error);
   }
 };
@@ -286,16 +298,14 @@ const requestOtp = async (req, res, next) => {
 
     const normalizedEmail = email.toLowerCase();
 
-    // Check if the user exists
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (!existingUser) {
       return next(errorHandler(404, "User not found"));
     }
-    // Generate and hash OTP
+
     const otp = Math.floor(100000 + Math.random() * 900000);
     const hashedOtp = hashSync(otp.toString(), 10);
 
-    // Temporarily store OTP and email
     const tempUserData = {
       email,
       hashedOtp,
@@ -303,7 +313,6 @@ const requestOtp = async (req, res, next) => {
     };
     storeTempUser(req, tempUserData);
 
-    // Send OTP via email
     const message = `
       <div style="text-align: center;">
         <h2>Password Reset Request</h2>
@@ -315,6 +324,7 @@ const requestOtp = async (req, res, next) => {
 
     return res.status(200).json({ message: "OTP sent to your email" });
   } catch (error) {
+    console.error("Request OTP Error:", error); // Added for debugging
     next(error);
   }
 };
@@ -338,11 +348,11 @@ const verifyOtpForPasswordReset = async (req, res, next) => {
       return next(errorHandler(402, "Invalid OTP"));
     }
 
-    // Proceed to password reset page
     return res
       .status(200)
       .json({ message: "OTP verified. Proceed to reset password." });
   } catch (error) {
+    console.error("Verify OTP Error:", error); // Added for debugging
     next(error);
   }
 };
@@ -357,18 +367,15 @@ const recovery_resendOTP = async (req, res, next) => {
 
     const email = tempUser.email;
 
-    // Generate a new 6-digit OTP and hash it
     const otp = Math.floor(100000 + Math.random() * 900000);
     const hashedOtp = hashSync(otp.toString(), 10);
 
-    // Update the session with the new OTP and expiry time
     tempUser.hashedOtp = hashedOtp;
     tempUser.otpExpiresAt = Date.now() + 2.3 * 60 * 1000; // OTP expires in 2.5 minutes
     storeTempUser(req, tempUser);
 
     console.log("New OTP generated:", otp);
 
-    // Send an email to the user with the new OTP
     const message = `
       <div style="text-align: center;">
         <h2>Password Recovery</h2>
@@ -380,6 +387,7 @@ const recovery_resendOTP = async (req, res, next) => {
 
     return res.status(200).json({ message: "OTP resent to your email" });
   } catch (error) {
+    console.error("Resend OTP Error:", error); // Added for debugging
     next(error);
   }
 };
@@ -394,20 +402,132 @@ const resetPassword = async (req, res, next) => {
       return next(errorHandler(400, "Session expired or User not found"));
     }
 
-    // Hash the new password
     const hashedPassword = hashSync(password, 10);
 
-    // Update the user's password
-    await User.updateOne(
-      { email: tempUser.email },
-      { password: hashedPassword }
-    );
+    await User.updateOne({ email: tempUser.email }, { password: hashedPassword });
 
-    // Clear temporary data
     clearTempUser(req);
 
     return res.status(200).json({ message: "Password updated successfully" });
   } catch (error) {
+    console.error("Reset Password Error:", error); // Added for debugging
+    next(error);
+  }
+};
+
+const add_employee = async (req, res, next) => {
+  try {
+    const { first_name, last_name, email, mobile, role } = req.body;
+
+    const normalizedEmail = email.toLowerCase();
+
+    let existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return next(errorHandler(400, "User Email Already Exists"));
+    }
+
+    let existingUserByMobile = await User.findOne({ mobile });
+    if (existingUserByMobile) {
+      return next(errorHandler(401, "Mobile Number Already Exists"));
+    }
+
+    const generatedPassword = `${first_name}@1234`;
+
+    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+
+    const newUser = new User({
+      first_name,
+      last_name,
+      email: normalizedEmail,
+      mobile,
+      role,
+      password: hashedPassword,
+    });
+
+    await newUser.save();
+
+    const subject = "Your Employee Account Details";
+    const htmlContent = `
+      <p>Hello ${first_name},</p>
+      <p>Your employee account has been created with the role of <b>${role}</b>. Below are your login details:</p>
+      <p><b>Email:</b> ${email}</p>
+      <p><b>Password:</b> ${generatedPassword}</p>
+      <p>Please change your password by using the "Forgot Password" option. Do not share your login credentials with anyone.</p>
+      <p>Best regards,</p>
+      <p>The Admin Team</p>
+    `;
+
+    await sendMail(normalizedEmail, subject, htmlContent);
+
+    res
+      .status(201)
+      .json({ message: "Employee added successfully, email sent." });
+  } catch (error) {
+    console.error("Add Employee Error:", error); // Added for debugging
+    next(error);
+  }
+};
+
+const login_employee = async (req, res, next) => {
+  try {
+    const { email, password, role } = req.body;
+
+    const normalizedEmail = email.toLowerCase();
+
+    const emailStatusMap = {
+      "gspuser2002@gmail.com": 900,
+      "prathioffcut@gmail.com": 901,
+      "dumindu.qualityassurance@gmail.com": 902,
+      "hiranvehiclefleet@gmail.com": 903,
+      "senath.inventory@gmail.com": 904,
+      "dilakshanorder728@gmail.com": 905,
+      "sujeevandelivery@gmail.com": 906,
+      "praveen.farmermgt@gmail.com": 907,
+      "senath.inventorymanager@gmail.com": 908,
+      "praveengspadlayout@gmail.com": 909,
+    };
+
+    let user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      return next(errorHandler(400, "Invalid email or password."));
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return next(errorHandler(400, "Invalid email or password."));
+    }
+
+    if (user.role !== role) {
+      return next(errorHandler(400, "Invalid role selection."));
+    }
+
+    user.status = "active";
+    user.lastLogin = new Date();
+    await user.save();
+
+    const token = jwt.sign(
+      {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    const { password: pass, ...rest } = user._doc;
+
+    let statusCode = emailStatusMap[normalizedEmail] || 200; // Default to 200 if not in map
+
+    res.cookie("access_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    });
+
+    return res.status(statusCode).json(rest);
+  } catch (error) {
+    console.error("Login Employee Error:", error); // Added for debugging
     next(error);
   }
 };
@@ -422,4 +542,6 @@ export default {
   verifyOtpForPasswordReset,
   recovery_resendOTP,
   resetPassword,
+  add_employee,
+  login_employee,
 };
