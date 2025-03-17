@@ -8,7 +8,6 @@ body, html {
   margin: 0;
   padding: 0;/* Tailwind's bg-gray-900 */
   height: 100vh;
-  overflow: hidden; /* Prevent browser-level scrolling if not needed */
 }
 
 /* Customize scrollbar to match the dark theme */
