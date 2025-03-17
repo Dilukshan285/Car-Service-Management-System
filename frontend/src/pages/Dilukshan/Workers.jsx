@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import Sidebar from "../components/Sidebar";
-import AddWorkerModal from "../pages/AddWorkerModal";
-import { sampleWorkers } from "../data/sampleData";
+import Sidebar from "../../components/Sidebar";
+import AddWorkerModal from "./AddWorkerModal";
+import { sampleWorkers } from "../../data/sampleData";
 
 const Workers = () => {
   const [viewMode, setViewMode] = useState("Grid");

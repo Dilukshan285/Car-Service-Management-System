@@ -15,14 +15,15 @@ import AddEmployeeForm from "./pages/Add_employee.jsx";
 import EmployeeSignin from "./pages/Employee_SignIn.jsx";
 import Footer from './components/Footer.jsx';
 
-import Manager_Dashboard from "./pages/Manager_Dashboard";
-import Appointments from "./pages/Appointments";
-import Workers from "./pages/Workers";
-import Customers from "./pages/Customers";
-import Services from "./pages/Services";
-import Vehicles from "./pages/Vehicles";
-import Analytics from "./pages/Analytics";
-import Settings from "./pages/Settings";
+// Dilukshan
+import Manager_Dashboard from "./pages/Dilukshan/Manager_Dashboard.jsx";
+import Appointments from "./pages/Dilukshan/Appointments.jsx";
+import Workers from "./pages/Dilukshan/Workers.jsx";
+import Customers from "./pages/Dilukshan/Customers.jsx";
+import Services from "./pages/Dilukshan/Services.jsx";
+import Vehicles from "./pages/Dilukshan/Vehicles.jsx";
+import Analytics from "./pages/Dilukshan/Analytics.jsx";
+import Settings from './pages/Dilukshan/Settings.jsx'
 
 function App() {
   return (

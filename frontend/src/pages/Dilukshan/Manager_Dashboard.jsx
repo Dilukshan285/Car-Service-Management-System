@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import Sidebar from "../components/Sidebar";
-import AppointmentCard from "../components/AppointmentCard";
-import { sampleAppointments, sampleWorkers } from "../data/sampleData";
+import Sidebar from "../../components/Sidebar";
+import AppointmentCard from "../../components/AppointmentCard";
+import { sampleAppointments, sampleWorkers } from "../../data/sampleData";
 
 const Manager_Dashboard = () => {
   const [activeTab, setActiveTab] = useState("All");
