@@ -15,11 +15,15 @@ import AddEmployeeForm from "./pages/Add_employee.jsx";
 import EmployeeSignin from "./pages/Employee_SignIn.jsx";
 import Footer from './components/Footer.jsx';
 
-//venushan's root
+//venushan's வேர்
 
 import ServiceDashboard from './pages/ServiceDashboard.jsx';
 import ServiceDetails from './pages/ServiceDetails.jsx';
 import AboutUs from './pages/Aboutuspage.jsx';
+
+
+//Raagul Gananathan's வேர்
+import ProductTable from './pages/Raagul/ProductTable.jsx';
 
 function App() {
   return (
@@ -47,8 +51,9 @@ function App() {
             <Route element={<PrivateRoute />}>
               <Route path="/dashboard/profile" element={<UserDashboard />} />
               <Route path="/admin-user" element={<AdminDashboard />} />
-
             </Route>
+
+            <Route path="/Product" element={< ProductTable/>} />
           </Routes>
         </main>
         <Footer />
