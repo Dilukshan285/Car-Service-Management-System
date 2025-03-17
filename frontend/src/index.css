@@ -1,3 +1,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+/* Ensure the entire page has a consistent background */
+body, html {
+  margin: 0;
+  padding: 0;/* Tailwind's bg-gray-900 */
+  height: 100vh;
+  overflow: hidden; /* Prevent browser-level scrolling if not needed */
+}
+
+/* Customize scrollbar to match the dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1F2937; /* Match bg-gray-900 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4B5563; /* Tailwind's gray-600 */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6B7280; /* Tailwind's gray-500 */
+}
