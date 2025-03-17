@@ -24,6 +24,10 @@ import AboutUs from './pages/Aboutuspage.jsx';
 
 //Raagul Gananathan's வேர்
 import ProductTable from './pages/Raagul/ProductTable.jsx';
+import ProductPage from './pages/Raagul/ProductPage.jsx';
+import ProductDetail from './pages/Raagul/ProductDetail.jsx';
+
+
 
 function App() {
   return (
@@ -54,6 +58,9 @@ function App() {
             </Route>
 
             <Route path="/Product" element={< ProductTable/>} />
+            <Route path="/ProductDisplay" element={< ProductPage/>} />
+            <Route path="/ProductDetails/:id" element={< ProductDetail/>} />
+
           </Routes>
         </main>
         <Footer />
