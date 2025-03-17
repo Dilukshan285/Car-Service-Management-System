@@ -15,6 +15,12 @@ import AddEmployeeForm from "./pages/Add_employee.jsx";
 import EmployeeSignin from "./pages/Employee_SignIn.jsx";
 import Footer from './components/Footer.jsx';
 
+//venushan's root
+
+import ServiceDashboard from './pages/ServiceDashboard.jsx';
+import ServiceDetails from './pages/ServiceDetails.jsx';
+import AboutUs from './pages/Aboutuspage.jsx';
+
 function App() {
   return (
     <Router>
@@ -22,6 +28,12 @@ function App() {
         <Header />
         <main className="flex-grow">
           <Routes>
+
+            <Route path="/service-dashboard" element={<ServiceDashboard />} />
+            <Route path="/service-details/:plate" element={<ServiceDetails />} />
+            <Route path="/about" element={< AboutUs/>} />
+
+
             <Route path="/" element={<UserHome />} />
             <Route path="/otp" element={<OTP />} />
             <Route path="/sign-up" element={<Signup />} />
@@ -35,6 +47,7 @@ function App() {
             <Route element={<PrivateRoute />}>
               <Route path="/dashboard/profile" element={<UserDashboard />} />
               <Route path="/admin-user" element={<AdminDashboard />} />
+
             </Route>
           </Routes>
         </main>
