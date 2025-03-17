@@ -13,7 +13,6 @@ import UserDashboard from "./pages/Dashboard.jsx";
 import AdminDashboard from "./pages/Admin_Dashboard.jsx";
 import AddEmployeeForm from "./pages/Add_employee.jsx";
 import EmployeeSignin from "./pages/Employee_SignIn.jsx";
-import Footer from './components/Footer.jsx';
 
 // Dilukshan
 import Manager_Dashboard from "./pages/Dilukshan/Manager_Dashboard.jsx";
