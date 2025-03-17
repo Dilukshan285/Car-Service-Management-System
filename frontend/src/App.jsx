@@ -24,6 +24,13 @@ import Vehicles from "./pages/Dilukshan/Vehicles.jsx";
 import Analytics from "./pages/Dilukshan/Analytics.jsx";
 import Settings from './pages/Dilukshan/Settings.jsx';
 
+// Venushan's வேர்
+import ServiceDashboard from './pages/ServiceDashboard.jsx';
+import ServiceDetails from './pages/ServiceDetails.jsx';
+import AboutUs from './pages/Aboutuspage.jsx';
+
+// Raagul Gananathan's வேர்
+import ProductTable from './pages/Raagul/ProductTable.jsx';
 
 function App() {
   return (
@@ -33,6 +40,9 @@ function App() {
         <main className="flex-grow">
           <Routes>
             {/* Public Routes */}
+            <Route path="/service-dashboard" element={<ServiceDashboard />} />
+            <Route path="/service-details/:plate" element={<ServiceDetails />} />
+            <Route path="/about" element={<AboutUs />} />
             <Route path="/" element={<UserHome />} />
             <Route path="/sign-up" element={<Signup />} />
             <Route path="/sign-in" element={<SignIn />} />
@@ -49,8 +59,6 @@ function App() {
               <Route path="/admin-user" element={<AdminDashboard />} />
             </Route>
 
-
-
             <Route path="/manager_dashboard" element={<Manager_Dashboard />} />
             <Route path="/appointments" element={<Appointments />} />
             <Route path="/workers" element={<Workers />} />
@@ -59,7 +67,7 @@ function App() {
             <Route path="/vehicles" element={<Vehicles />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<Settings />} />
-
+            <Route path="/Product" element={<ProductTable />} />
           </Routes>
         </main>
       </div>
