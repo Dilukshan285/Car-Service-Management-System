@@ -19,6 +19,7 @@ import Footer from './components/Footer.jsx';
 
 import ServiceDashboard from './pages/ServiceDashboard.jsx';
 import ServiceDetails from './pages/ServiceDetails.jsx';
+import AboutUs from './pages/Aboutuspage.jsx';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
 
             <Route path="/service-dashboard" element={<ServiceDashboard />} />
             <Route path="/service-details/:plate" element={<ServiceDetails />} />
+            <Route path="/about" element={< AboutUs/>} />
 
 
             <Route path="/" element={<UserHome />} />
