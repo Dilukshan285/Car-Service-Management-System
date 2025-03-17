@@ -15,6 +15,15 @@ import AddEmployeeForm from "./pages/Add_employee.jsx";
 import EmployeeSignin from "./pages/Employee_SignIn.jsx";
 import Footer from './components/Footer.jsx';
 
+import Manager_Dashboard from "./pages/Manager_Dashboard";
+import Appointments from "./pages/Appointments";
+import Workers from "./pages/Workers";
+import Customers from "./pages/Customers";
+import Services from "./pages/Services";
+import Vehicles from "./pages/Vehicles";
+import Analytics from "./pages/Analytics";
+import Settings from "./pages/Settings";
+
 function App() {
   return (
     <Router>
@@ -36,9 +45,21 @@ function App() {
               <Route path="/dashboard/profile" element={<UserDashboard />} />
               <Route path="/admin-user" element={<AdminDashboard />} />
             </Route>
+
+
+
+            <Route path="/manager_dashboard" element={<Manager_Dashboard />} />
+            <Route path="/appointments" element={<Appointments />} />
+            <Route path="/workers" element={<Workers />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/vehicles" element={<Vehicles />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/Manager" element={<Manager_Dashboard />} />
+
           </Routes>
         </main>
-        <Footer />
       </div>
     </Router>
   );
