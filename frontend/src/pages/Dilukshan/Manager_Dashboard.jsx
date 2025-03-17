@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import Sidebar from "../../components/Sidebar";
-import AppointmentCard from "../../components/AppointmentCard";
+import Sidebar from '../../components/Dilukshan/Sidebar';
+import AppointmentCard from "../../components/Dilukshan/AppointmentCard";
 import { sampleAppointments, sampleWorkers } from "../../data/sampleData";
 
 const Manager_Dashboard = () => {

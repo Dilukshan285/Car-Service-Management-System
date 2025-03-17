@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Sidebar from "../../components/Sidebar";
+import Sidebar from '../../components/Dilukshan/Sidebar';
 import AddWorkerModal from "./AddWorkerModal";
 import { sampleWorkers } from "../../data/sampleData";
 
@@ -7,59 +7,16 @@ const Workers = () => {
   const [viewMode, setViewMode] = useState("Grid");
   const [workers, setWorkers] = useState(sampleWorkers);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phoneNumber: "",
-    address: "",
-    primarySpecialization: "",
-    skills: [],
-    certifications: [],
-    hireDate: "",
-    weeklyAvailability: [],
-    hourlyRate: "",
-    additionalNotes: "",
-    status: "busy",
-    workload: 0,
-    rating: 4.5,
-  });
 
-  const toggleModal = () => {
-    setIsModalOpen(!isModalOpen);
-    if (!isModalOpen) {
-      setFormData({
-        fullName: "",
-        email: "",
-        phoneNumber: "",
-        address: "",
-        primarySpecialization: "",
-        skills: [],
-        certifications: [],
-        hireDate: "",
-        weeklyAvailability: [],
-        hourlyRate: "",
-        additionalNotes: "",
-        status: "busy",
-        workload: 0,
-        rating: 4.5,
-      });
-    }
-  };
-
-  const handleSubmit = (newWorker) => {
-    // Generate a unique ID (simplified for demo)
+  const handleAddWorker = (data) => {
     const id = Date.now().toString();
-    setWorkers([...workers, { ...newWorker, _id: id }]);
+    setWorkers([...workers, { ...data, _id: id }]);
   };
 
   return (
     <div className="flex h-screen bg-gray-900 text-white">
-      {/* Sidebar */}
       <Sidebar />
-
-      {/* Main Content */}
       <div className="flex-1 flex flex-col bg-gray-900 overflow-y-auto">
-        {/* Header */}
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -98,7 +55,7 @@ const Workers = () => {
               </select>
               <button
                 className="bg-orange-500 text-white rounded-lg py-2 px-4 flex items-center"
-                onClick={toggleModal}
+                onClick={() => setIsModalOpen(true)}
               >
                 <svg
                   className="h-5 w-5 mr-2"
@@ -119,8 +76,6 @@ const Workers = () => {
             </div>
           </div>
         </div>
-
-        {/* View Toggle and Showing Info */}
         <div className="px-6 pb-4 flex justify-between items-center">
           <div className="flex space-x-2">
             <button
@@ -142,8 +97,6 @@ const Workers = () => {
           </div>
           <p className="text-gray-400">Showing {workers.length} workers</p>
         </div>
-
-        {/* Worker Cards (Grid View) */}
         <div className="p-6 pt-0 pb-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {workers.map((worker) => (
@@ -152,7 +105,7 @@ const Workers = () => {
                   <div className="flex items-center">
                     <div className="h-12 w-12 bg-gray-600 rounded-full mr-3"></div>
                     <div>
-                      <p className="font-semibold">{worker.fullName}</p>
+                      <p className="font-semibold">{worker.name}</p>
                     </div>
                   </div>
                   <button className="text-gray-400 hover:text-gray-200">
@@ -176,9 +129,7 @@ const Workers = () => {
                   <p className="text-gray-400 text-sm">Availability:</p>
                   <div className="flex items-center mt-1">
                     <div
-                      className={`h-4 w-4 rounded-full mr-2 ${
-                        worker.status === "available" ? "bg-green-500" : "bg-pink-500"
-                      }`}
+                      className={`h-4 w-4 rounded-full mr-2 ${worker.status === "available" ? "bg-green-500" : "bg-pink-500"}`}
                     ></div>
                     <p className="text-sm">
                       {worker.status === "available" ? "Available" : "Busy"}
@@ -201,9 +152,7 @@ const Workers = () => {
                     {[...Array(5)].map((_, i) => (
                       <svg
                         key={i}
-                        className={`h-4 w-4 ${
-                          i < Math.round(worker.rating || 4.5) ? "text-yellow-400" : "text-gray-600"
-                        }`}
+                        className={`h-4 w-4 ${i < Math.round(worker.rating || 4.5) ? "text-yellow-400" : "text-gray-600"}`}
                         fill="currentColor"
                         viewBox="0 0 20 20"
                         xmlns="http://www.w3.org/2000/svg"
@@ -220,14 +169,10 @@ const Workers = () => {
             ))}
           </div>
         </div>
-
-        {/* Add Worker Modal */}
         <AddWorkerModal
           isOpen={isModalOpen}
-          onClose={toggleModal}
-          formData={formData}
-          setFormData={setFormData}
-          handleSubmit={handleSubmit}
+          onClose={() => setIsModalOpen(false)}
+          onAddWorker={handleAddWorker}
         />
       </div>
     </div>
