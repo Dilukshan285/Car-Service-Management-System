@@ -30,7 +30,7 @@ import MyOrdersPage from './pages/Raagul/MyOrdersPage.jsx';
 import CartPage from './pages/Raagul/CartPage.jsx';
 import CheckoutPage from './pages/Raagul/CheckoutPage.jsx';
 import PaymentPage from './pages/Raagul/PaymentPage.jsx';
-
+import OrderManagementPage from './pages/Raagul/OrderManagementPage.jsx';
 
 
 
@@ -70,6 +70,8 @@ function App() {
             <Route path="/cart" element={< CartPage/>} />
             <Route path="/checkout" element={< CheckoutPage/>} />
             <Route path="/payment" element={< PaymentPage/>} />
+            <Route path="/payment" element={< PaymentPage/>} />
+            <Route path="/adminOrder" element={< OrderManagementPage/>} />
 
 
 
