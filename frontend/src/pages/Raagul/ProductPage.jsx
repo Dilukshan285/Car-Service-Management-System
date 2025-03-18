@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';  // Import Link from React Router
+import { Link, useNavigate } from 'react-router-dom';  // Import Link and useNavigate from React Router
 
 const ProductPage = () => {
+  const navigate = useNavigate(); // Initialize the useNavigate hook for navigation
   const [products, setProducts] = useState([
     {
       id: 1,
@@ -88,6 +89,7 @@ const ProductPage = () => {
   const [category, setCategory] = useState('All');
   const [priceRange, setPriceRange] = useState([0, 600]);
   const [availability, setAvailability] = useState(false);
+  const [cart, setCart] = useState([]); // Cart state to store added items
 
   const filteredProducts = products.filter((product) => {
     const inCategory = category === 'All' || product.category === category;
@@ -96,13 +98,39 @@ const ProductPage = () => {
     return inCategory && inPriceRange && inStock;
   });
 
+  // Function to handle adding products to the cart
+  const handleAddToCart = (product) => {
+    setCart((prevCart) => {
+      const existingProduct = prevCart.find((item) => item.id === product.id);
+      if (existingProduct) {
+        // If the product already exists in the cart, increase the quantity
+        return prevCart.map((item) =>
+          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      } else {
+        // If the product is not in the cart, add it
+        return [...prevCart, { ...product, quantity: 1 }];
+      }
+    });
+  };
+
+  // Navigate to Cart Page when the Cart button is clicked
+  const handleGoToCart = () => {
+    navigate('/cart'); // Redirect to the Cart page
+  };
+
   return (
     <div className="bg-gray-100 p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-4xl font-semibold">Car Parts & Accessories</h1>
         <div className="flex items-center space-x-4">
-          <button className="bg-gray-700 text-white px-4 py-2 rounded-lg">Cart (0)</button>
+          <button
+            onClick={handleGoToCart} // Cart button click handler
+            className="bg-gray-700 text-white px-4 py-2 rounded-lg"
+          >
+            Cart ({cart.reduce((total, product) => total + product.quantity, 0)})
+          </button>
         </div>
       </div>
 
@@ -225,7 +253,12 @@ const ProductPage = () => {
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-xl font-semibold">${product.price}</span>
                   {product.inStock ? (
-                    <button className="bg-blue-600 text-white px-4 py-2 rounded-lg">Add to Cart</button>
+                    <button
+                      onClick={() => handleAddToCart(product)} // Add product to the cart
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+                    >
+                      Add to Cart
+                    </button>
                   ) : (
                     <span className="text-red-500 text-sm">Low Stock</span>
                   )}
@@ -245,8 +278,6 @@ const ProductPage = () => {
           </div>
         </div>
       </div>
-
-      
     </div>
   );
 };

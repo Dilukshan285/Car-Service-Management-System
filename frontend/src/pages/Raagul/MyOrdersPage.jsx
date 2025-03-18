@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate hook
 
 const MyOrdersPage = () => {
   const [orders] = useState([
@@ -39,11 +40,22 @@ const MyOrdersPage = () => {
     },
   ]);
 
+  const navigate = useNavigate(); // Initialize the navigate function
+
+  const handleContinueShopping = () => {
+    navigate('/ProductDisplay'); // Navigate to the Product Display page
+  };
+
   return (
     <div className="bg-gray-100 min-h-screen p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-4xl font-semibold">My Orders</h1>
-        <button className="bg-blue-600 text-white px-6 py-2 rounded-lg">Continue Shopping</button>
+        <button
+          onClick={handleContinueShopping} // Attach the handler to the button
+          className="bg-blue-600 text-white px-6 py-2 rounded-lg"
+        >
+          Continue Shopping
+        </button>
       </div>
 
       {/* Order Filters */}

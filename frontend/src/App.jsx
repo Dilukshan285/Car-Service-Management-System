@@ -27,6 +27,10 @@ import ProductTable from './pages/Raagul/ProductTable.jsx';
 import ProductPage from './pages/Raagul/ProductPage.jsx';
 import ProductDetail from './pages/Raagul/ProductDetail.jsx';
 import MyOrdersPage from './pages/Raagul/MyOrdersPage.jsx';
+import CartPage from './pages/Raagul/CartPage.jsx';
+import CheckoutPage from './pages/Raagul/CheckoutPage.jsx';
+import PaymentPage from './pages/Raagul/PaymentPage.jsx';
+
 
 
 
@@ -63,7 +67,9 @@ function App() {
             <Route path="/ProductDisplay" element={< ProductPage/>} />
             <Route path="/ProductDetails/:id" element={< ProductDetail/>} />
             <Route path="/myorders" element={< MyOrdersPage/>} />
-            
+            <Route path="/cart" element={< CartPage/>} />
+            <Route path="/checkout" element={< CheckoutPage/>} />
+            <Route path="/payment" element={< PaymentPage/>} />
 
 
 
