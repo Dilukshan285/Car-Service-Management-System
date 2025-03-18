@@ -26,6 +26,8 @@ import AboutUs from './pages/Aboutuspage.jsx';
 import ProductTable from './pages/Raagul/ProductTable.jsx';
 import ProductPage from './pages/Raagul/ProductPage.jsx';
 import ProductDetail from './pages/Raagul/ProductDetail.jsx';
+import MyOrdersPage from './pages/Raagul/MyOrdersPage.jsx';
+
 
 
 
@@ -60,6 +62,11 @@ function App() {
             <Route path="/Product" element={< ProductTable/>} />
             <Route path="/ProductDisplay" element={< ProductPage/>} />
             <Route path="/ProductDetails/:id" element={< ProductDetail/>} />
+            <Route path="/myorders" element={< MyOrdersPage/>} />
+            
+
+
+
 
           </Routes>
         </main>

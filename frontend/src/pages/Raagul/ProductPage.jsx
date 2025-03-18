@@ -246,9 +246,7 @@ const ProductPage = () => {
         </div>
       </div>
 
-      <footer className="mt-12 text-center text-sm text-gray-500">
-        <p>© 2024 AutoParts. All rights reserved.</p>
-      </footer>
+      
     </div>
   );
 };
