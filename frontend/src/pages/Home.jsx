@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Footer from "../../src/components/Footer"
 
 const Home = () => {
   // State for contact form
@@ -84,7 +85,7 @@ const Home = () => {
                 style={{
                   maxWidth: '700px',
                   height: '500px',
-                  opacity: 0.9,
+                  opacity: 1,
                 }}
               >
                 <p slot="default" style={{ textAlign: 'center', fontSize: '1.2rem', color: 'white' }}>
@@ -516,6 +517,7 @@ const Home = () => {
           </div>
         </div>
       </section>
+      <Footer/>
     </main>
   );
 };

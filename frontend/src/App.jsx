@@ -8,21 +8,28 @@ import RecoveryPage from "./pages/Recovery_email.jsx";
 import RecoveryOTP from "./pages/Recovery_OTP.jsx";
 import RecoveryPassword from "./pages/Recovery_Password.jsx";
 import Unauthorized from "./pages/Unauthorized.jsx";
-import UserHome from './pages/Home.jsx'
+import UserHome from './pages/Home.jsx';
 import UserDashboard from "./pages/Dashboard.jsx";
 import AdminDashboard from "./pages/Admin_Dashboard.jsx";
 import AddEmployeeForm from "./pages/Add_employee.jsx";
 import EmployeeSignin from "./pages/Employee_SignIn.jsx";
-import Footer from './components/Footer.jsx';
 
-//venushan's வேர்
+// Dilukshan
+import Manager_Dashboard from "./pages/Dilukshan/Manager_Dashboard.jsx";
+import Appointments from "./pages/Dilukshan/Appointments.jsx";
+import Workers from "./pages/Dilukshan/Workers.jsx";
+import Customers from "./pages/Dilukshan/Customers.jsx";
+import Services from "./pages/Dilukshan/Services.jsx";
+import Vehicles from "./pages/Dilukshan/Vehicles.jsx";
+import Analytics from "./pages/Dilukshan/Analytics.jsx";
+import Settings from './pages/Dilukshan/Settings.jsx';
 
+// Venushan's வேர்
 import ServiceDashboard from './pages/ServiceDashboard.jsx';
 import ServiceDetails from './pages/ServiceDetails.jsx';
 import AboutUs from './pages/Aboutuspage.jsx';
 
-
-//Raagul Gananathan's வேர்
+// Raagul Gananathan's வேர்
 import ProductTable from './pages/Raagul/ProductTable.jsx';
 import ProductPage from './pages/Raagul/ProductPage.jsx';
 import ProductDetail from './pages/Raagul/ProductDetail.jsx';
@@ -42,22 +49,21 @@ function App() {
         <Header />
         <main className="flex-grow">
           <Routes>
-
+            {/* Public Routes */}
             <Route path="/service-dashboard" element={<ServiceDashboard />} />
             <Route path="/service-details/:plate" element={<ServiceDetails />} />
-            <Route path="/about" element={< AboutUs/>} />
-
-
+            <Route path="/about" element={<AboutUs />} />
             <Route path="/" element={<UserHome />} />
-            <Route path="/otp" element={<OTP />} />
             <Route path="/sign-up" element={<Signup />} />
             <Route path="/sign-in" element={<SignIn />} />
+            <Route path="/otp" element={<OTP />} />
             <Route path="/recovery-email" element={<RecoveryPage />} />
             <Route path="/recovery-otp" element={<RecoveryOTP />} />
             <Route path="/recovery-password" element={<RecoveryPassword />} />
             <Route path="/employee-signin" element={<EmployeeSignin />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/add-employee" element={<AddEmployeeForm />} />
+
             <Route element={<PrivateRoute />}>
               <Route path="/dashboard/profile" element={<UserDashboard />} />
               <Route path="/admin-user" element={<AdminDashboard />} />
@@ -76,10 +82,17 @@ function App() {
 
 
 
-
+            <Route path="/manager_dashboard" element={<Manager_Dashboard />} />
+            <Route path="/appointments" element={<Appointments />} />
+            <Route path="/workers" element={<Workers />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/vehicles" element={<Vehicles />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/Product" element={<ProductTable />} />
           </Routes>
         </main>
-        <Footer />
       </div>
     </Router>
   );
