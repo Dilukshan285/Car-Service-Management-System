@@ -31,6 +31,16 @@ import AboutUs from './pages/Aboutuspage.jsx';
 
 // Raagul Gananathan's வேர்
 import ProductTable from './pages/Raagul/ProductTable.jsx';
+import ProductPage from './pages/Raagul/ProductPage.jsx';
+import ProductDetail from './pages/Raagul/ProductDetail.jsx';
+import MyOrdersPage from './pages/Raagul/MyOrdersPage.jsx';
+import CartPage from './pages/Raagul/CartPage.jsx';
+import CheckoutPage from './pages/Raagul/CheckoutPage.jsx';
+import PaymentPage from './pages/Raagul/PaymentPage.jsx';
+import OrderManagementPage from './pages/Raagul/OrderManagementPage.jsx';
+import ReviewManagementPage from './pages/Raagul/ReviewManagementPage.jsx';
+
+
 
 function App() {
   return (
@@ -58,6 +68,19 @@ function App() {
               <Route path="/dashboard/profile" element={<UserDashboard />} />
               <Route path="/admin-user" element={<AdminDashboard />} />
             </Route>
+
+            <Route path="/Product" element={< ProductTable/>} />
+            <Route path="/ProductDisplay" element={< ProductPage/>} />
+            <Route path="/ProductDetails/:id" element={< ProductDetail/>} />
+            <Route path="/myorders" element={< MyOrdersPage/>} />
+            <Route path="/cart" element={< CartPage/>} />
+            <Route path="/checkout" element={< CheckoutPage/>} />
+            <Route path="/payment" element={< PaymentPage/>} />
+            <Route path="/payment" element={< PaymentPage/>} />
+            <Route path="/adminOrder" element={< OrderManagementPage/>} />
+            <Route path="/adminReview" element={< ReviewManagementPage/>} />
+
+
 
             <Route path="/manager_dashboard" element={<Manager_Dashboard />} />
             <Route path="/appointments" element={<Appointments />} />
