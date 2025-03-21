@@ -22,13 +22,6 @@ const workerSchema = new Schema(
     primarySpecialization: {
       type: String,
       required: true,
-      enum: [
-        "Engine Specialist",
-        "Brake Specialist",
-        "Electrical Systems",
-        "General Mechanic",
-        "Transmission Specialist",
-      ],
     },
     skills: {
       type: [String],
@@ -48,7 +41,6 @@ const workerSchema = new Schema(
     },
     hourlyRate: {
       type: Number,
-      required: true,
     },
     additionalNotes: {
       type: String,
@@ -62,6 +54,10 @@ const workerSchema = new Schema(
       type: String,
       enum: ["available", "busy"],
       default: "available",
+    },
+    profilePicture: {
+      type: String,
+      default: 'https://tse2.mm.bing.net/th?id=OIP.eCrcK2BiqwBGE1naWwK3UwHaHa&pid=Api&P=0&h=180'
     },
     tasks: [
       {

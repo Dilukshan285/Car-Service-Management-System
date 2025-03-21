@@ -22,7 +22,6 @@ import Customers from "./pages/Dilukshan/Customers.jsx";
 import Services from "./pages/Dilukshan/Services.jsx";
 import Vehicles from "./pages/Dilukshan/Vehicles.jsx";
 import Analytics from "./pages/Dilukshan/Analytics.jsx";
-import Settings from './pages/Dilukshan/Settings.jsx';
 
 // Venushan's வேர்
 import ServiceDashboard from './pages/ServiceDashboard.jsx';
@@ -66,7 +65,6 @@ function App() {
             <Route path="/services" element={<Services />} />
             <Route path="/vehicles" element={<Vehicles />} />
             <Route path="/analytics" element={<Analytics />} />
-            <Route path="/settings" element={<Settings />} />
             <Route path="/Product" element={<ProductTable />} />
           </Routes>
         </main>
