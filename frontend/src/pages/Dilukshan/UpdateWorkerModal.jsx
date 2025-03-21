@@ -6,7 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import { z } from "zod";
 
-// Define Zod schema
+// Define Zod schema (same as AddWorkerModal)
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -21,7 +21,7 @@ const formSchema = z.object({
   notes: z.string().optional(),
 });
 
-const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
+const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
   const [loading, setLoading] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [certificationsOpen, setCertificationsOpen] = useState(false);
@@ -40,13 +40,24 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
     additionalNotes: "",
   });
 
+  // Pre-fill the form with the worker's data when the modal opens
   useEffect(() => {
-    const today = new Date("2025-03-17");
-    setFormData((prev) => ({
-      ...prev,
-      hireDate: today.toISOString().split("T")[0],
-    }));
-  }, []);
+    if (worker) {
+      setFormData({
+        fullName: worker.fullName || "",
+        email: worker.email || "",
+        phoneNumber: worker.phoneNumber || "",
+        address: worker.address || "",
+        primarySpecialization: worker.primarySpecialization || "",
+        skills: worker.skills || [],
+        certifications: worker.certifications || [],
+        hireDate: worker.hireDate ? new Date(worker.hireDate).toISOString().split("T")[0] : "",
+        weeklyAvailability: worker.weeklyAvailability || [],
+        hourlyRate: worker.hourlyRate ? worker.hourlyRate.toString() : "25",
+        additionalNotes: worker.additionalNotes || "",
+      });
+    }
+  }, [worker]);
 
   const skillOptions = [
     "Oil Changes",
@@ -115,7 +126,7 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-  
+
     // Map formData to match Zod schema
     const validationData = {
       name: formData.fullName,
@@ -130,11 +141,11 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
       hourlyRate: formData.hourlyRate,
       notes: formData.additionalNotes,
     };
-  
+
     try {
       // Validate with Zod
       formSchema.parse(validationData);
-  
+
       const data = new FormData();
       data.append("fullName", formData.fullName);
       data.append("email", formData.email);
@@ -150,37 +161,24 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
       if (profilePicture) {
         data.append("profilePicture", profilePicture);
       }
-  
-      const response = await axios.post("http://localhost:5000/api/workers/add", data, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-  
-      // Pass the new worker data (plain object) to the parent component
-      if (onAddWorker) {
-        onAddWorker(response.data.data); // Pass the new worker object, not the FormData
+
+      const response = await axios.put(
+        `http://localhost:5000/api/workers/update/${worker._id}`,
+        data,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (onUpdateWorker) {
+        onUpdateWorker(response.data.data);
       }
-  
+
       // Show success message
-      toast.success("Worker added successfully!");
-  
-      // Reset form after successful submission
-      setFormData({
-        fullName: "",
-        email: "",
-        phoneNumber: "",
-        address: "",
-        primarySpecialization: "",
-        skills: [],
-        certifications: [],
-        hireDate: "",
-        weeklyAvailability: [],
-        hourlyRate: "25",
-        additionalNotes: "",
-      });
-      setProfilePicture(null);
-  
+      toast.success("Worker updated successfully!");
+
       onClose();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -189,8 +187,8 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
           toast.error(err.message);
         });
       } else {
-        console.error("Error adding worker:", error);
-        toast.error(error.response?.data?.message || "Failed to add worker.");
+        console.error("Error updating worker:", error);
+        toast.error(error.response?.data?.message || "Failed to update worker.");
       }
     } finally {
       setLoading(false);
@@ -203,7 +201,7 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
       <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 rounded-2xl shadow-2xl w-full max-w-4xl overflow-y-auto max-h-[90vh] relative border border-gray-700">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold text-white">Add New Worker</h2>
+          <h2 className="text-3xl font-bold text-white">Update Worker</h2>
           <button
             className="text-gray-300 hover:text-white text-3xl transition-colors duration-200"
             onClick={onClose}
@@ -211,7 +209,7 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
             ×
           </button>
         </div>
-        <p className="text-gray-400 mb-6">Fill out the form below to add a new worker to your team.</p>
+        <p className="text-gray-400 mb-6">Update the details below to modify the worker's information.</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex flex-wrap -mx-3">
@@ -225,6 +223,12 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                       alt="Profile Preview"
                       className="w-full h-full object-cover rounded-full"
                     />
+                  ) : worker.profilePicture ? (
+                    <img
+                      src={worker.profilePicture}
+                      alt="Profile"
+                      className="w-full h-full object-cover rounded-full"
+                    />
                   ) : (
                     <FaUpload className="text-3xl text-gray-400" />
                   )}
@@ -236,7 +240,7 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                     onChange={handleFileChange}
                     className="hidden"
                   />
-                  Upload a profile photo
+                  Upload a new profile photo
                 </label>
               </div>
 
@@ -249,7 +253,6 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.fullName}
                   onChange={handleChange}
-                  
                 />
               </div>
 
@@ -262,7 +265,6 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.email}
                   onChange={handleChange}
-                  
                 />
               </div>
 
@@ -275,7 +277,6 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.phoneNumber}
                   onChange={handleChange}
-                  
                 />
               </div>
 
@@ -287,7 +288,6 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white h-24 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.address}
                   onChange={handleChange}
-                  required
                 />
               </div>
             </div>
@@ -447,7 +447,7 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                     onChange={handleChange}
                   />
                   <div className="absolute right-0 top-0 mt-2 mr-3">
-                   
+                    {/* <FaCalendarAlt className="text-gray-400" /> */}
                   </div>
                 </div>
               </div>
@@ -511,7 +511,7 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
               disabled={loading}
               className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-2 px-6 rounded-lg transition-all duration-200 shadow-md disabled:opacity-50"
             >
-              {loading ? <ClipLoader size={20} color="white" /> : "Save Worker"}
+              {loading ? <ClipLoader size={20} color="white" /> : "Update Worker"}
             </button>
           </div>
         </form>
@@ -521,4 +521,4 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
   );
 };
 
-export default AddWorkerModal;
+export default UpdateWorkerModal;
