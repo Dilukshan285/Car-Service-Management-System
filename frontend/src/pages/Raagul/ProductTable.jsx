@@ -8,6 +8,9 @@ const ProductTable = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [loading, setLoading] = useState(true); // Add loading state
   const [error, setError] = useState(null); // Add error state
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // State for delete modal
+  const [productToDelete, setProductToDelete] = useState(null); // State for product to delete
+  const [toastMessage, setToastMessage] = useState(''); // State for toast message
 
   useEffect(() => {
     fetchProducts();
@@ -70,21 +73,38 @@ const ProductTable = () => {
     }
   };
 
-  const handleDeleteProduct = async (productId) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        const response = await fetch(`http://localhost:5000/api/products/${productId}`, {
-          method: 'DELETE',
-          credentials: 'include'
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        fetchProducts(); // Refresh the product list
-      } catch (error) {
-        console.error('Error deleting product:', error);
+  const handleDeleteClick = (product) => {
+    setProductToDelete(product);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!productToDelete) return;
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/products/${productToDelete._id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+      setShowDeleteModal(false);
+      setProductToDelete(null);
+      fetchProducts(); // Refresh the product list
+      // Show success toast
+      setToastMessage('Product deleted successfully!');
+      setTimeout(() => setToastMessage(''), 3000); // Hide toast after 3 seconds
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      setShowDeleteModal(false);
+      setProductToDelete(null);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+    setProductToDelete(null);
   };
 
   return (
@@ -157,7 +177,7 @@ const ProductTable = () => {
                         Edit
                       </button> | 
                       <button 
-                        onClick={() => handleDeleteProduct(product._id)} 
+                        onClick={() => handleDeleteClick(product)} 
                         className="text-red-500 hover:text-red-700"
                       >
                         Delete
@@ -167,6 +187,41 @@ const ProductTable = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800">
+                Confirm Deletion
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete <span className="font-medium">{productToDelete?.name}</span>?
+              </p>
+              <div className="flex justify-end space-x-4">
+                <button
+                  onClick={handleDeleteCancel}
+                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-all duration-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-300"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Success Toast Message */}
+        {toastMessage && (
+          <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in-out">
+            {toastMessage}
           </div>
         )}
       </div>

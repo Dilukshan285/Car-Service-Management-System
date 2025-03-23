@@ -10,6 +10,7 @@ const ProductPage = () => {
   const [priceRange, setPriceRange] = useState([0, 600]);
   const [availability, setAvailability] = useState(false);
   const [cart, setCart] = useState([]);
+  const [searchQuery, setSearchQuery] = useState(''); // State for search query
 
   // Fetch products from API on mount
   useEffect(() => {
@@ -53,12 +54,13 @@ const ProductPage = () => {
     fetchProducts();
   }, []);
 
-  // Filter products based on category, price range, and availability
+  // Filter products based on category, price range, availability, and search query
   const filteredProducts = products.filter((product) => {
     const inCategory = category === 'All' || product.category === category;
     const inPriceRange = product.price >= priceRange[0] && product.price <= priceRange[1];
     const inStock = availability ? product.inStock : true;
-    return inCategory && inPriceRange && inStock;
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()); // Case-insensitive search
+    return inCategory && inPriceRange && inStock && matchesSearch;
   });
 
   // Handle adding products to the cart
@@ -89,7 +91,7 @@ const ProductPage = () => {
         <div className="flex items-center space-x-4">
           <button
             onClick={handleGoToCart}
-            className="bg-gray-700 text-white px-4 py-2 rounded-lg"
+            className="bg-gray-700 text-white px-4 py-2 rounded-lg transition-all duration-300 hover:bg-gray-800 hover:scale-105"
           >
             Cart ({cart.reduce((total, product) => total + product.quantity, 0)})
           </button>
@@ -98,69 +100,38 @@ const ProductPage = () => {
 
       <div className="flex">
         {/* Filters Section */}
-        <div className="w-1/4 bg-white p-6 rounded-lg shadow-lg">
-          <h2 className="text-2xl font-semibold mb-4">Filters</h2>
+        <div className="w-1/4 bg-white p-6 rounded-lg shadow-md border border-gray-200">
+          <h2 className="text-2xl font-semibold mb-6 text-gray-800">Filters</h2>
 
-          {/* Categories */}
+          {/* Categories Dropdown */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium mb-2">Categories</h3>
-            <ul className="space-y-2">
-              <li>
-                <button
-                  onClick={() => setCategory('All')}
-                  className={`block text-lg ${category === 'All' ? 'font-semibold text-blue-600' : 'text-gray-700'}`}
-                >
-                  All
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setCategory('Engine')}
-                  className={`block text-lg ${category === 'Engine' ? 'font-semibold text-blue-600' : 'text-gray-700'}`}
-                >
-                  Engine
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setCategory('Brakes')}
-                  className={`block text-lg ${category === 'Brakes' ? 'font-semibold text-blue-600' : 'text-gray-700'}`}
-                >
-                  Brakes
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setCategory('Wheels')}
-                  className={`block text-lg ${category === 'Wheels' ? 'font-semibold text-blue-600' : 'text-gray-700'}`}
-                >
-                  Wheels
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setCategory('Lighting')}
-                  className={`block text-lg ${category === 'Lighting' ? 'font-semibold text-blue-600' : 'text-gray-700'}`}
-                >
-                  Lighting
-                </button>
-              </li>
-            </ul>
+            <h3 className="text-lg font-medium mb-2 text-gray-700">Categories</h3>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 hover:shadow-md"
+            >
+              <option value="All">All</option>
+              <option value="Engine">Engine</option>
+              <option value="Brakes">Brakes</option>
+              <option value="Wheels">Wheels</option>
+              <option value="Lighting">Lighting</option>
+            </select>
           </div>
 
           {/* Price Range */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium mb-2">Price Range</h3>
+            <h3 className="text-lg font-medium mb-2 text-gray-700">Price Range</h3>
             <input
               type="range"
               min="0"
-              max="600"
+              max="1500"
               step="1"
               value={priceRange[1]}
               onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
-              className="w-full"
+              className="w-full cursor-pointer h-2 bg-gray-200 rounded-lg appearance-none transition-all duration-300 hover:bg-gray-300"
             />
-            <div className="flex justify-between text-sm text-gray-500">
+            <div className="flex justify-between text-sm text-gray-500 mt-2">
               <span>$0</span>
               <span>${priceRange[1]}</span>
             </div>
@@ -168,24 +139,34 @@ const ProductPage = () => {
 
           {/* Availability */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium mb-2">Availability</h3>
+            <h3 className="text-lg font-medium mb-2 text-gray-700">Availability</h3>
             <label className="inline-flex items-center">
               <input
                 type="checkbox"
                 checked={availability}
                 onChange={() => setAvailability(!availability)}
-                className="form-checkbox"
+                className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
               />
-              <span className="ml-2">In stock only</span>
+              <span className="ml-2 text-gray-700">In stock only</span>
             </label>
           </div>
         </div>
 
         {/* Product List */}
         <div className="w-3/4 pl-6">
-          <h3 className="text-xl font-semibold mb-6">
-            Browse our selection of high-quality automotive parts and accessories
-          </h3>
+          {/* Search Bar and Heading */}
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold">
+              Browse our selection of high-quality automotive parts and accessories
+            </h3>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by product name..."
+              className="w-1/3 p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 hover:shadow-md"
+            />
+          </div>
 
           {loading ? (
             <div className="text-center text-gray-600">Loading products...</div>
@@ -196,7 +177,10 @@ const ProductPage = () => {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
               {filteredProducts.map((product) => (
-                <div key={product.id} className="bg-white rounded-lg shadow-lg p-4">
+                <div
+                  key={product.id}
+                  className="bg-white rounded-lg shadow-lg p-4 transition-all duration-300 hover:scale-105 hover:shadow-xl"
+                >
                   <img
                     src={product.image}
                     alt={product.name}
@@ -210,7 +194,7 @@ const ProductPage = () => {
                     {product.inStock ? (
                       <button
                         onClick={() => handleAddToCart(product)}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg transition-all duration-300 hover:bg-blue-700 hover:scale-105"
                       >
                         Add to Cart
                       </button>
@@ -224,7 +208,10 @@ const ProductPage = () => {
                     </span>
                     <span>{product.category}</span>
                   </div>
-                  <Link to={`/ProductDetails/${product.id}`} className="text-blue-600 mt-2 block text-center">
+                  <Link
+                    to={`/ProductDetails/${product.id}`}
+                    className="mt-2 block text-center bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-300 hover:from-blue-600 hover:to-blue-800 hover:scale-105"
+                  >
                     View Details
                   </Link>
                 </div>

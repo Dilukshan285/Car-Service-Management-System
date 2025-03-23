@@ -95,7 +95,7 @@ const ProductDetail = () => {
       <div className="p-6 text-center text-red-600">
         Error: {error}
         <div className="mt-4">
-          <Link to="/" className="text-blue-600">Back to Products</Link>
+          <Link to="/ProductDisplay" className="text-blue-600">Back to Products</Link>
         </div>
       </div>
     );
@@ -106,7 +106,7 @@ const ProductDetail = () => {
       <div className="p-6 text-center text-gray-600">
         Product not found.
         <div className="mt-4">
-          <Link to="/" className="text-blue-600">Back to Products</Link>
+          <Link to="/ProductDisplay" className="text-blue-600">Back to Products</Link>
         </div>
       </div>
     );
@@ -115,7 +115,7 @@ const ProductDetail = () => {
   return (
     <div className="bg-gray-100 p-6">
       <div className="flex justify-between mb-6">
-        <Link to="/" className="text-blue-600">
+        <Link to="/ProductDisplay" className="text-blue-600">
           Back to Products
         </Link>
       </div>
@@ -126,7 +126,7 @@ const ProductDetail = () => {
           <img
             src={product.image}
             alt={product.name}
-            className="w-full h-64 object-cover mb-4 rounded-lg"
+            className="w-full h-96 object-contain mb-4 rounded-lg shadow-lg border border-gray-200 bg-white p-4"
             onError={(e) => (e.target.src = 'https://via.placeholder.com/150')} // Fallback for invalid images
           />
         </div>
@@ -238,7 +238,7 @@ const ProductDetail = () => {
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 mb-2">Review</label>
-            <textarea
+              <textarea
                 name="comment"
                 value={newReview.comment}
                 onChange={handleInputChange}
