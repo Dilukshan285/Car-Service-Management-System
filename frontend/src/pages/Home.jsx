@@ -1,7 +1,12 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import Footer from "../../src/components/Footer";
 import { Link, useLocation } from 'react-router-dom';
 import { MapPin, Phone, Mail, Clock } from "lucide-react"; // Added lucide-react icons
+
+import React, { useState, useEffect } from 'react';
+import Footer from "../../src/components/Footer"
+
 
 const Home = () => {
   // State for contact form
@@ -571,7 +576,11 @@ const Home = () => {
           </div>
         </div>
       </section>
+
       <Footer />
+
+      <Footer/>
+
     </main>
   );
 };

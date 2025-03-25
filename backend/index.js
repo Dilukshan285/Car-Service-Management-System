@@ -2,10 +2,14 @@ import express, { json } from 'express';
 import { connect } from 'mongoose';
 import userRoutes from './routes/UserRoute.js';
 import AuthRoute from './routes/AuthRoute.js';
+import appointmentRoutes from './routes/Appointment.js'
+import workerRoutes from "./routes/Worker.js";
 import dotenv from 'dotenv';
 import cors from 'cors'; // Import the cors package
 import cookieParser from 'cookie-parser';
 
+//raagul
+import productRoutes from './routes/productRoutes.js'; // Import product routes
 dotenv.config();
 
 const app = express();
@@ -51,6 +55,15 @@ app.get('/', (req, res) => {
 // User-related Routes
 app.use('/api/user', userRoutes);
 app.use('/api/auth', AuthRoute);
+
+// Appointment Related Routes
+app.use("/api/appointments", appointmentRoutes);
+
+// Worker Related Routes
+app.use("/api/workers", workerRoutes);
+
+// Product-related Routes
+app.use('/api', productRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
