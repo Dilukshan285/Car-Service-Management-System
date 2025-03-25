@@ -90,11 +90,7 @@ function App() {
 
             {/* Dilukshan's Routes */}
             <Route path="/manager_dashboard" element={<Manager_Dashboard />} />
-
-
-            <Route path="/manager_dashboard" element={<Manager_Dashboard />} />
             <Route path="/appointments" element={<Appointments />} />
-
             <Route path="/workers" element={<Workers />} />
             <Route path="/customers" element={<Customers />} />
             <Route path="/services" element={<Services />} />
@@ -104,11 +100,7 @@ function App() {
 
             {/* Venushan's Routes */}
             <Route path="/booking" element={<BookingForm />} />
-            <Route path="/appointment" element={<ImageUploadForm />} />
-          
-
-            <Route path="/Product" element={<ProductTable />} />
-
+            <Route path="/AI" element={<ImageUploadForm />} />
           </Routes>
         </main>
       </div>
