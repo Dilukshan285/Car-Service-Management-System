@@ -1,7 +1,13 @@
+
+import React, { useState } from 'react';
+
+const AddProduct = ({ onCancel, onAddProduct }) => {
+
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 
 const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
+
   const [formData, setFormData] = useState({
     productName: '',
     description: '',
@@ -9,6 +15,10 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
     category: '',
     stockQuantity: 0,
     sellerName: '',
+
+    productImages: null
+  });
+
     productImages: null // Changed to 'productImages'
   });
   const [errors, setErrors] = useState({});
@@ -47,9 +57,24 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
     }
   };
 
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+
+  };
+
+  const handleImageUpload = (e) => {
+    setFormData({ ...formData, productImages: e.target.files });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // You can call the `onAddProduct` function to save the product data
+    console.log(formData);
+    // Clear form after submission or close the form
+    onAddProduct();
+
     setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
@@ -128,11 +153,16 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
     } finally {
       setLoading(false);
     }
+
   };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
+
+      <h2 className="text-2xl mb-4">Add New Product</h2>
+
       <h2 className="text-2xl mb-4">{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
+
 
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
@@ -145,7 +175,9 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg" 
             placeholder="Enter product name"
           />
+
           {errors.productName && <p className="text-red-500 text-sm">{errors.productName}</p>}
+
         </div>
 
         <div className="mb-4">
@@ -169,10 +201,14 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
               onChange={handleInputChange} 
               className="w-full px-4 py-2 border border-gray-300 rounded-lg" 
               placeholder="Enter price"
+
+            />
+
               min="0"
               step="0.01"
             />
             {errors.price && <p className="text-red-500 text-sm">{errors.price}</p>}
+
           </div>
           <div className="w-1/2 pl-2">
             <label className="block text-gray-700">Stock Quantity</label>
@@ -183,6 +219,9 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
               onChange={handleInputChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg" 
               placeholder="Enter stock quantity"
+
+            />
+
               min="0"
             />
             {errors.stockQuantity && <p className="text-red-500 text-sm">{errors.stockQuantity}</p>}
@@ -203,7 +242,10 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
             <option value="Engine">Engine</option>
             <option value="Wheels">Wheels</option>
           </select>
+
+
           {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
+
         </div>
 
         <div className="mb-4">
@@ -216,6 +258,20 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg" 
             placeholder="Enter seller name"
           />
+
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-gray-700">Product Images</label>
+          <input 
+            type="file" 
+            onChange={handleImageUpload}
+            multiple 
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg" 
+          />
+          <p className="mt-2 text-sm text-gray-500">
+            No images uploaded yet. JPG, PNG or GIF, up to 10MB each.
+
           {errors.sellerName && <p className="text-red-500 text-sm">{errors.sellerName}</p>}
         </div>
 
@@ -232,22 +288,33 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
             {editingProduct && editingProduct.images 
               ? 'Current image uploaded. Upload a new image to replace.'
               : 'No image uploaded yet. JPG, PNG or GIF, up to 10MB.'}
+
           </p>
         </div>
 
         <div className="flex justify-end">
           <button 
             type="submit" 
+
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg"
+          >
+            Add Product
+
             className={`bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={loading}
           >
             {loading ? 'Processing...' : (editingProduct ? 'Update Product' : 'Add Product')}
+
           </button>
           <button 
             type="button" 
             onClick={onCancel} 
+
+            className="bg-gray-600 text-white ml-4 px-6 py-2 rounded-lg"
+
             className="bg-gray-600 text-white ml-4 px-6 py-2 rounded-lg hover:bg-gray-700 transition"
             disabled={loading}
+
           >
             Cancel
           </button>
@@ -257,4 +324,8 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
   );
 };
 
+
 export default AddProduct;
+
+export default AddProduct;
+
