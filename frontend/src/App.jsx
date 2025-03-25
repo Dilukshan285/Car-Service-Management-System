@@ -12,8 +12,6 @@ import Unauthorized from "./pages/Unauthorized.jsx";
 
 import UserHome from "./pages/Home.jsx";
 
-import UserHome from './pages/Home.jsx';
-
 import UserDashboard from "./pages/Dashboard.jsx";
 import AdminDashboard from "./pages/Admin_Dashboard.jsx";
 import AddEmployeeForm from "./pages/Add_employee.jsx";
