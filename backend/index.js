@@ -8,6 +8,8 @@ import dotenv from 'dotenv';
 import cors from 'cors'; // Import the cors package
 import cookieParser from 'cookie-parser';
 
+//raagul
+import productRoutes from './routes/productRoutes.js'; // Import product routes
 dotenv.config();
 
 const app = express();
@@ -60,6 +62,8 @@ app.use("/api/appointments", appointmentRoutes);
 // Worker Related Routes
 app.use("/api/workers", workerRoutes);
 
+// Product-related Routes
+app.use('/api', productRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
