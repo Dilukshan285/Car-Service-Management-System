@@ -1,11 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import Footer from "../../src/components/Footer";
+import Footer from "../../src/components/Footer.jsx";
 import { Link, useLocation } from 'react-router-dom';
 import { MapPin, Phone, Mail, Clock } from "lucide-react"; // Added lucide-react icons
 
-import React, { useState, useEffect } from 'react';
-import Footer from "../../src/components/Footer"
 
 
 const Home = () => {
