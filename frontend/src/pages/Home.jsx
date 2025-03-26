@@ -1,5 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import Footer from "../../src/components/Footer"
+
+import React, { useState, useEffect, useRef } from 'react';
+import Footer from "../../src/components/Footer.jsx";
+import { Link, useLocation } from 'react-router-dom';
+import { MapPin, Phone, Mail, Clock } from "lucide-react"; // Added lucide-react icons
+
+
 
 const Home = () => {
   // State for contact form
@@ -17,6 +22,15 @@ const Home = () => {
   // State to toggle additional services visibility
   const [showAllServices, setShowAllServices] = useState(false);
 
+  // State for highlighting the Contact Us heading
+  const [highlight, setHighlight] = useState(false);
+
+  // Ref for the Contact Us heading section
+  const contactHeadingRef = useRef(null);
+
+  // Access query parameters
+  const location = useLocation();
+
   // Load the model-viewer script dynamically
   useEffect(() => {
     const script = document.createElement('script');
@@ -25,6 +39,31 @@ const Home = () => {
     script.onload = () => setModelViewerLoaded(true);
     document.head.appendChild(script);
   }, []);
+
+  // Auto-scroll to Contact section if query parameter is present
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('scrollTo') === 'contact') {
+      const contactSection = document.getElementById('contact');
+      if (contactSection) {
+        // Scroll to the section
+        contactSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // Adjust scroll position to account for a fixed header (e.g., 80px height)
+        const headerOffset = 80; // Adjust this value based on your header height
+        const elementPosition = contactSection.getBoundingClientRect().top + window.pageYOffset;
+        const offsetPosition = elementPosition - headerOffset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth',
+        });
+
+        // Trigger highlight effect
+        setHighlight(true);
+      }
+    }
+  }, [location]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -41,6 +80,14 @@ const Home = () => {
   // Toggle visibility of additional services
   const handleViewAllServices = () => {
     setShowAllServices(!showAllServices);
+  };
+
+  // Scroll to services section
+  const handleScrollToServices = () => {
+    const servicesSection = document.getElementById('services');
+    if (servicesSection) {
+      servicesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   return (
@@ -60,9 +107,12 @@ const Home = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <button className="bg-gradient-to-r from-gray-800 to-gray-900 text-white px-6 py-3 rounded-lg font-semibold hover:from-gray-900 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg">
-                  Book Service Now
+                  <Link to="/appointment">Book Service Now</Link>
                 </button>
-                <button className="border border-gray-300 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-100/10 transition-all duration-300">
+                <button
+                  onClick={handleScrollToServices}
+                  className="border border-gray-300 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-100/10 transition-all duration-300"
+                >
                   View Services
                 </button>
               </div>
@@ -285,9 +335,9 @@ const Home = () => {
               )}
             </div>
             <div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">About AutoCare Center</h2>
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">About RevUp</h2>
               <p className="text-gray-700 mb-6">
-                For over 15 years, AutoCare Center has been providing top-quality automotive services to our community.
+                For over 15 years, RevUp has been providing top-quality automotive services to our community.
                 We take pride in our work and are committed to delivering exceptional service at fair prices.
               </p>
               <p className="text-gray-700 mb-6">
@@ -347,9 +397,9 @@ const Home = () => {
                 ))}
               </div>
               <p className="mb-4 text-gray-700">
-                "I've been taking my cars to AutoCare Center for years. They're always honest, fair, and do excellent work. I wouldn't trust my vehicles with anyone else!"
+                "I've been taking my cars to RevUp for years. They're always honest, fair, and do excellent work. I wouldn't trust my vehicles with anyone else!"
               </p>
-              <div className="font-semibold text-gray-800">- Michael Johnson</div>
+              <div className="font-semibold text-gray-800">- Dilani Jayasinghe</div>
             </div>
             <div className="bg-gradient-to-br from-gray-100 via-gray-200 to-white rounded-lg shadow-lg p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-xl border border-gray-300">
               <div className="flex items-center gap-1 mb-4">
@@ -368,9 +418,9 @@ const Home = () => {
                 ))}
               </div>
               <p className="mb-4 text-gray-700">
-                "The team at AutoCare Center is amazing! They fixed my car quickly and at a reasonable price. Their customer service is top-notch. Highly recommend!"
+                "The team at RevUp is amazing! They fixed my car quickly and at a reasonable price. Their customer service is top-notch. Highly recommend!"
               </p>
-              <div className="font-semibold text-gray-800">- Sarah Williams</div>
+              <div className="font-semibold text-gray-800">- Ravi Dissanayake</div>
             </div>
             <div className="bg-gradient-to-br from-gray-100 via-gray-200 to-white rounded-lg shadow-lg p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-xl border border-gray-300">
               <div className="flex items-center gap-1 mb-4">
@@ -391,7 +441,7 @@ const Home = () => {
               <p className="mb-4 text-gray-700">
                 "I was impressed by how thorough and professional the mechanics were. They explained everything clearly and didn't try to sell me services I didn't need. Great experience!"
               </p>
-              <div className="font-semibold text-gray-800">- David Thompson</div>
+              <div className="font-semibold text-gray-800">- Suresh Gunawardena</div>
             </div>
           </div>
         </div>
@@ -402,34 +452,41 @@ const Home = () => {
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">Contact Us</h2>
-              <p className="text-gray-700 mb-8">
-                Have questions or want to schedule a service? Reach out to us using the form or contact information below.
-              </p>
+              <div
+                ref={contactHeadingRef}
+                className={`transition-all duration-1000 ${
+                  highlight ? 'bg-blue-50 p-4 rounded-lg shadow-md' : ''
+                }`}
+              >
+                <h2 className="text-4xl font-bold text-gray-900 mb-6">Contact Us</h2>
+                <p className="text-gray-700 mb-8">
+                  Have questions or want to schedule a service? Reach out to us using the form or contact information below.
+                </p>
+              </div>
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <span className="text-2xl mt-0.5 text-blue-600">📍</span>
+                  <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div>
                     <h3 className="font-semibold text-gray-800">Address</h3>
                     <p className="text-gray-700">123 Auto Service Lane, Cartown, CT 12345</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <span className="text-2xl mt-0.5 text-blue-600">📞</span>
+                  <Phone className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div>
                     <h3 className="font-semibold text-gray-800">Phone</h3>
                     <p className="text-gray-700">(555) 123-4567</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <span className="text-2xl mt-0.5 text-blue-600">📧</span>
+                  <Mail className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div>
                     <h3 className="font-semibold text-gray-800">Email</h3>
-                    <p className="text-gray-700">info@autocarecenter.com</p>
+                    <p className="text-gray-700">info@revup.com</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <span className="text-2xl mt-0.5 text-blue-600">⏰</span>
+                  <Clock className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div>
                     <h3 className="font-semibold text-gray-800">Hours</h3>
                     <p className="text-gray-700">Monday - Friday: 8am - 6pm</p>
@@ -517,7 +574,11 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      <Footer />
+
       <Footer/>
+
     </main>
   );
 };
