@@ -1,6 +1,11 @@
 import { Clock, MapPin, Phone, Shield, PenTool as Tool, Wrench } from "lucide-react";
-// If using React Router, uncomment the following line and install react-router-dom
-// import { Link } from "react-router-dom";
+import { Link } from "react-router-dom"; // Uncommented for navigation
+import image from "../../assets/about.jpg";
+import image2 from "../../assets/Aboutus1.jpg";
+import member1 from "../../assets/member1.jpg";
+import member2 from "../../assets/member2.jpg";
+import member3 from "../../assets/member3.jpg";
+import member4 from "../../assets/member4.jpg";
 
 export default function AboutUs() {
   return (
@@ -30,7 +35,7 @@ export default function AboutUs() {
                   center trusted by thousands of customers.
                 </p>
                 <p>
-                  Our founder, Michael Reynolds, believed that car maintenance shouldn't be intimidating or confusing.
+                  Our founder, Senthuran Wijesinghe, believed that car maintenance shouldn't be intimidating or confusing.
                   He built RevUp on the principles of transparency, expertise, and customer education.
                 </p>
                 <p>
@@ -40,24 +45,16 @@ export default function AboutUs() {
                 </p>
               </div>
               <div className="mt-8">
-                {/* Use <a> tag or Link from react-router-dom */}
-                <a href="/services">
-                  <button className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                    Explore Our Services
-                  </button>
-                </a>
-                {/* If using React Router, replace the above with:
                 <Link to="/services">
                   <button className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
                     Explore Our Services
                   </button>
                 </Link>
-                */}
               </div>
             </div>
             <div className="relative h-[400px] rounded-lg overflow-hidden shadow-xl">
               <img
-                src="/placeholder.svg?height=800&width=600"
+                src={image2}
                 alt="RevUp Service Center"
                 className="object-cover w-full h-full"
               />
@@ -123,15 +120,15 @@ export default function AboutUs() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { name: "Michael Reynolds", role: "Founder & Master Technician" },
-              { name: "Sarah Johnson", role: "Service Manager" },
-              { name: "David Chen", role: "Lead Diagnostician" },
-              { name: "Maria Rodriguez", role: "Customer Service Director" },
+              { name: "Senthuran Wijesinghe", role: "Founder & Master Technician", image: member1 },
+              { name: "Lakshmi Silva", role: "Service Manager", image: member2 },
+              { name: "Shalini Fernando", role: "Customer Service Director", image: member3 },
+              { name: "Arjun Dissanayake", role: "Lead Diagnostician", image: member4 },
             ].map((member, index) => (
               <div key={index} className="text-center">
                 <div className="relative w-48 h-48 mx-auto rounded-full overflow-hidden mb-4">
                   <img
-                    src={`/placeholder.svg?height=200&width=200`}
+                    src={member.image}
                     alt={member.name}
                     className="object-cover w-full h-full"
                   />
@@ -143,18 +140,7 @@ export default function AboutUs() {
           </div>
 
           <div className="mt-12 text-center">
-            <a href="/team">
-              <button className="border border-blue-600 text-blue-600 px-6 py-2 rounded-md hover:bg-blue-50 transition-colors">
-                View Full Team
-              </button>
-            </a>
-            {/* If using React Router, replace the above with:
-            <Link to="/team">
-              <button className="border border-blue-600 text-blue-600 px-6 py-2 rounded-md hover:bg-blue-50 transition-colors">
-                View Full Team
-              </button>
-            </Link>
-            */}
+            {/* Removed as per the commented-out section in the provided code */}
           </div>
         </div>
       </section>
@@ -197,7 +183,7 @@ export default function AboutUs() {
             </div>
             <div className="order-1 md:order-2 relative h-[400px] rounded-lg overflow-hidden shadow-xl">
               <img
-                src="/placeholder.svg?height=800&width=600"
+                src={image}
                 alt="RevUp Facilities"
                 className="object-cover w-full h-full"
               />
@@ -219,15 +205,15 @@ export default function AboutUs() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                name: "Jennifer L.",
+                name: "Dilani Jayasinghe",
                 text: "I've been bringing my vehicles to RevUp for over 5 years. Their honesty and quality of work is unmatched. They take the time to explain everything and never push unnecessary services.",
               },
               {
-                name: "Robert T.",
+                name: "Ravi Dissanayake",
                 text: "As someone who knows very little about cars, I appreciate how the team at RevUp educates me without making me feel foolish. Fair prices, excellent work, and they've earned my trust completely.",
               },
               {
-                name: "Marcus W.",
+                name: "Suresh Gunawardena",
                 text: "The convenience of their digital inspection reports and text updates while my car was being serviced was impressive. Modern approach to car repair with old-fashioned quality service.",
               },
             ].map((testimonial, index) => (
@@ -239,18 +225,11 @@ export default function AboutUs() {
           </div>
 
           <div className="mt-12 text-center">
-            <a href="/testimonials">
+            {/*<Link to="/testimonials">*/}
               <button className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
                 Read More Reviews
               </button>
-            </a>
-            {/* If using React Router, replace the above with:
-            <Link to="/testimonials">
-              <button className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                Read More Reviews
-              </button>
-            </Link>
-            */}
+           {/* </Link> */}
           </div>
         </div>
       </section>
@@ -263,28 +242,16 @@ export default function AboutUs() {
             Schedule your appointment today and see why so many drivers trust us with their vehicles.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/appointment">
-              <button className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors">
-                Schedule Service
-              </button>
-            </a>
-            <a href="/contact">
-              <button className="border border-blue-600 text-blue-600 px-6 py-3 rounded-md hover:bg-blue-50 transition-colors">
-                Contact Us
-              </button>
-            </a>
-            {/* If using React Router, replace the above with:
             <Link to="/appointment">
               <button className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors">
                 Schedule Service
               </button>
             </Link>
-            <Link to="/contact">
+            <Link to="/?scrollTo=contact">
               <button className="border border-blue-600 text-blue-600 px-6 py-3 rounded-md hover:bg-blue-50 transition-colors">
                 Contact Us
               </button>
             </Link>
-            */}
           </div>
         </div>
       </section>

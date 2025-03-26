@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+
 import Signup from "./pages/Signup.jsx";
 import OTP from "./pages/OTP.jsx";
 import SignIn from "./pages/SignIn.jsx";
@@ -9,7 +10,9 @@ import RecoveryPage from "./pages/Recovery_email.jsx";
 import RecoveryOTP from "./pages/Recovery_OTP.jsx";
 import RecoveryPassword from "./pages/Recovery_Password.jsx";
 import Unauthorized from "./pages/Unauthorized.jsx";
-import UserHome from './pages/Home.jsx';
+
+import UserHome from "./pages/Home.jsx";
+
 import UserDashboard from "./pages/Dashboard.jsx";
 import AdminDashboard from "./pages/Admin_Dashboard.jsx";
 import AddEmployeeForm from "./pages/Add_employee.jsx";
@@ -24,13 +27,25 @@ import Services from "./pages/Dilukshan/Services.jsx";
 import Vehicles from "./pages/Dilukshan/Vehicles.jsx";
 import Analytics from "./pages/Dilukshan/Analytics.jsx";
 
-// Venushan's வேர்
-import ServiceDashboard from './pages/ServiceDashboard.jsx';
-import ServiceDetails from './pages/ServiceDetails.jsx';
-import AboutUs from './pages/Aboutuspage.jsx';
+// Venushan's Pages
+import ServiceDashboard from "./pages/venushan/ServiceDashboard.jsx";
+import ServiceDetails from "./pages/venushan/ServiceDetails.jsx";
+import AboutUs from "./pages/venushan/Aboutuspage.jsx";
+import BookingForm from "./pages/venushan/AppoinmentBookingimg.jsx";
+import ImageUploadForm from "./pages/venushan/AppoinmentBooking.jsx";
 
 // Raagul Gananathan's வேர்
 import ProductTable from './pages/Raagul/ProductTable.jsx';
+import ProductPage from './pages/Raagul/ProductPage.jsx';
+import ProductDetail from './pages/Raagul/ProductDetail.jsx';
+import MyOrdersPage from './pages/Raagul/MyOrdersPage.jsx';
+import CartPage from './pages/Raagul/CartPage.jsx';
+import CheckoutPage from './pages/Raagul/CheckoutPage.jsx';
+import PaymentPage from './pages/Raagul/PaymentPage.jsx';
+import OrderManagementPage from './pages/Raagul/OrderManagementPage.jsx';
+import ReviewManagementPage from './pages/Raagul/ReviewManagementPage.jsx';
+
+
 
 // Wrapper component to manage header visibility
 function AppWrapper() {
@@ -97,6 +112,44 @@ function App() {
   return (
     <Router>
       <AppWrapper />
+
+
+            {/* Protected Routes */}
+
+            <Route element={<PrivateRoute />}>
+              <Route path="/dashboard/profile" element={<UserDashboard />} />
+              <Route path="/admin-user" element={<AdminDashboard />} />
+            </Route>
+
+
+            {/* Raagul's Routes */}
+            <Route path="/Product" element={<ProductTable />} />
+            <Route path="/accessories" element={<ProductPage />} />
+            <Route path="/ProductDetails/:id" element={<ProductDetail />} />
+            <Route path="/myorders" element={<MyOrdersPage />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/payment" element={<PaymentPage />} />
+            <Route path="/adminOrder" element={<OrderManagementPage />} />
+            <Route path="/adminReview" element={<ReviewManagementPage />} />
+
+            {/* Dilukshan's Routes */}
+            <Route path="/manager_dashboard" element={<Manager_Dashboard />} />
+            <Route path="/appointments" element={<Appointments />} />
+            <Route path="/workers" element={<Workers />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/vehicles" element={<Vehicles />} />
+            <Route path="/analytics" element={<Analytics />} />
+
+
+            {/* Venushan's Routes */}
+            <Route path="/booking" element={<BookingForm />} />
+            <Route path="/AI" element={<ImageUploadForm />} />
+          </Routes>
+        </main>
+      </div>
+
     </Router>
   );
 }
