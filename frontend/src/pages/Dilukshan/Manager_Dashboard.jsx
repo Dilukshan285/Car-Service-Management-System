@@ -1,19 +1,93 @@
-import React, { useState } from "react";
-import Sidebar from '../../components/Dilukshan/Sidebar';
+import React, { useState, useEffect } from "react";
+import Sidebar from "../../components/Dilukshan/Sidebar";
 import AppointmentCard from "./AppointmentCard";
-import { sampleAppointments, sampleWorkers } from "../../data/sampleData";
+import { ToastContainer } from "react-toastify"; // Import ToastContainer
+import "react-toastify/dist/ReactToastify.css"; // Import the CSS for react-toastify
 
 const Manager_Dashboard = () => {
   const [activeTab, setActiveTab] = useState("All");
+  const [appointments, setAppointments] = useState([]);
+  const [workers, setWorkers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Function to fetch appointments
+  const fetchAppointments = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/api/appointments/", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch appointments");
+      }
+
+      const data = await response.json();
+      setAppointments(data.data || []);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // Fetch appointments and workers on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch appointments
+        await fetchAppointments();
+
+        // Fetch workers
+        const workerResponse = await fetch("http://localhost:5000/api/workers/", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!workerResponse.ok) {
+          throw new Error("Failed to fetch workers");
+        }
+
+        const workerData = await workerResponse.json();
+        setWorkers(workerData.data || []);
+
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Filter appointments based on the active tab
-  const filteredAppointments = sampleAppointments.filter((appointment) => {
+  const filteredAppointments = appointments.filter((appointment) => {
     if (activeTab === "All") return true;
-    if (activeTab === "Pending" && !appointment.worker) return true;
-    if (activeTab === "In Progress" && appointment.worker && appointment.worker._id === "worker-1") return true;
-    if (activeTab === "Completed" && appointment.worker && appointment.worker._id !== "worker-1") return true;
+    if (activeTab === "Pending" && appointment.status === "Pending") return true;
+    if (activeTab === "In Progress" && appointment.status === "In Progress") return true;
+    if (activeTab === "Completed" && appointment.status === "Completed") return true;
     return false;
   });
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-gray-900 text-white items-center justify-center">
+        <p>Loading data...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen bg-gray-900 text-white items-center justify-center">
+        <p>Error: {error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-white">
@@ -45,11 +119,11 @@ const Manager_Dashboard = () => {
                 } focus:outline-none`}
                 onClick={() => setActiveTab(tab)}
               >
-                {tab} ({
-                  sampleAppointments.filter((a) =>
-                    tab === "All" ? true : tab === "Pending" ? !a.worker : tab === "In Progress" ? a.worker && a.worker._id === "worker-1" : a.worker && a.worker._id !== "worker-1"
-                  ).length
-                })
+                {tab} (
+                {tab === "All"
+                  ? appointments.length
+                  : appointments.filter((a) => a.status === tab).length}
+                )
               </button>
             ))}
           </div>
@@ -63,12 +137,27 @@ const Manager_Dashboard = () => {
                 key={appointment._id}
                 appointment={appointment}
                 activeTab={activeTab}
-                sampleWorkers={sampleWorkers}
+                workers={workers}
+                onWorkerAssigned={fetchAppointments}
               />
             ))}
           </div>
         </div>
       </div>
+
+      {/* Add ToastContainer to render toast notifications */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
     </div>
   );
 };
