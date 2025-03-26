@@ -26,8 +26,7 @@ const apiURL = "http://localhost:5000";
 
 const Dashboard = () => {
   const dispatch = useDispatch();
-  const { currentUser } = useSelector((state) => state.user);
-  const { loading } = useSelector((state) => state.user);
+  const { currentUser, loading } = useSelector((state) => state.user);
   const [imageFile, setImageFile] = useState(null);
   const [imageFileUrl, setImageFileUrl] = useState(null);
   const [isModified, setIsModified] = useState(false);
@@ -44,6 +43,8 @@ const Dashboard = () => {
     postalCode: currentUser.postal || "",
     address: currentUser.address || "",
   });
+
+  const filePickerRef = useRef();
 
   const handlePostalCodeChange = (e) => {
     handleChange(e);
@@ -66,7 +67,6 @@ const Dashboard = () => {
 
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
           const data = await response.json();
-          console.log("API Response:", data);
 
           if (data.results && data.results.length > 0) {
             setArea({ area: data.results[0].place || "" });
@@ -74,7 +74,6 @@ const Dashboard = () => {
           } else {
             setArea({ area: "" });
             setDistrict({ district: "" });
-            console.log("No results found for postal code:", postalCode);
             toast.error("No results found for postal code");
           }
         } catch (error) {
@@ -91,8 +90,6 @@ const Dashboard = () => {
 
     setDebounceTimeout(newTimeout);
   };
-
-  const filePickerRef = useRef();
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -117,12 +114,21 @@ const Dashboard = () => {
   const handleChange = (e) => {
     const { id, value } = e.target;
     let updatedValue = value;
+
     if (id === "firstName" || id === "lastName") {
       updatedValue = value.replace(/[^A-Za-z]/g, "");
-    } else if (id === "mobileNumber" || id === "postalCode") {
+    } else if (id === "postalCode") {
       updatedValue = value.replace(/[^0-9]/g, "");
+    } else if (id === "mobileNumber") {
+      // Allow only digits and ensure the length is appropriate
+      updatedValue = value.replace(/[^0-9]/g, "");
+      if (updatedValue.length > 9) {
+        updatedValue = updatedValue.slice(0, 9); // Limit to 9 digits (after +94)
+      }
     }
+
     setFormData({ ...formData, [id]: updatedValue });
+
     const validationErrors = validateProfile(id, updatedValue);
     if ((id === "firstName" || id === "lastName" || id === "email") && !updatedValue) {
       setErrors({ ...errors, ...validationErrors });
@@ -139,6 +145,8 @@ const Dashboard = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate all fields
     const fieldsToValidate = ["firstName", "lastName", "email", "mobileNumber", "postalCode", "address"];
     let validationErrors = {};
     fieldsToValidate.forEach((field) => {
@@ -147,25 +155,39 @@ const Dashboard = () => {
         validationErrors = { ...validationErrors, ...fieldError };
       }
     });
+
     if (!formData.firstName || !formData.lastName || !formData.email) {
       toast.error("Please fill in all required fields");
       return;
     }
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       toast.error("Please correct all errors before saving.");
       return;
     }
+
+    // Validate mobile number format (Sri Lankan mobile number: 9 digits after +94)
+    if (formData.mobileNumber && !/^[0-9]{9}$/.test(formData.mobileNumber)) {
+      setErrors({ ...errors, mobileNumber: "Mobile number must be 9 digits (e.g., 771234567)" });
+      toast.error("Mobile number must be 9 digits (e.g., 771234567)");
+      return;
+    }
+
     const data = new FormData();
     data.append("first_name", formData.firstName);
     data.append("last_name", formData.lastName);
     data.append("email", formData.email);
-    data.append("mobile", formData.mobileNumber);
-    data.append("postal", formData.postalCode);
-    data.append("address", formData.address);
-    data.append("area", area.area);
-    data.append("district", district.district);
+    // Only append mobile if it's not empty
+    if (formData.mobileNumber) {
+      data.append("mobile", `+94${formData.mobileNumber}`); // Prepend +94
+    }
+    if (formData.postalCode) data.append("postal", formData.postalCode);
+    if (formData.address) data.append("address", formData.address);
+    if (area.area) data.append("area", area.area);
+    if (district.district) data.append("district", district.district);
     if (imageFile) data.append("avatar", imageFile);
+
     try {
       dispatch(updateStart());
       const res = await fetch(`${apiURL}/api/auth/update/${currentUser._id}`, {
@@ -173,28 +195,35 @@ const Dashboard = () => {
         credentials: "include",
         body: data,
       });
+
       const result = await res.json();
-      console.log(result);
+
       if (res.ok) {
-        dispatch(updateSuccess(result));
-        toast.success("Updated Successfully");
+        dispatch(updateSuccess(result.data));
+        toast.success("Profile updated successfully");
         setIsModified(false);
-      } else if (res.status === 400) {
+      } else {
         dispatch(updateFailure(result.message));
-        toast.error("File upload error");
-      } else if (res.status === 403) {
-        dispatch(updateFailure(result.message));
-        toast.error("You are not allowed to update this user");
-      } else if (res.status === 404) {
-        dispatch(updateFailure(result.message));
-        toast.error("Mobile number already exists. Please use a different number.");
-      } else if (res.status === 405) {
-        dispatch(updateFailure(result.message));
-        toast.error("Email already exists. Please use a different email.");
+        switch (res.status) {
+          case 400:
+            toast.error(result.message || "File upload error");
+            break;
+          case 403:
+            toast.error(result.message || "You are not allowed to update this user");
+            break;
+          case 404:
+            toast.error(result.message || "Mobile number already exists. Please use a different number.");
+            break;
+          case 405:
+            toast.error(result.message || "Email already exists. Please use a different email.");
+            break;
+          default:
+            toast.error(result.message || "Failed to update profile");
+        }
       }
     } catch (error) {
-      dispatch(updateFailure(error.toString()));
-      toast.error("An error occurred");
+      dispatch(updateFailure(error.message));
+      toast.error("An error occurred while updating the profile");
     }
   };
 
@@ -202,7 +231,7 @@ const Dashboard = () => {
     setShowModal(false);
     try {
       dispatch(deleteUserStart());
-      const res = await fetch(apiURL + `/api/auth/delete/${currentUser._id}`, {
+      const res = await fetch(`${apiURL}/api/auth/delete/${currentUser._id}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -211,8 +240,8 @@ const Dashboard = () => {
         dispatch(deleteUserSuccess(data));
         toast.success("User deleted successfully");
       } else {
-        dispatch(deleteUserFailure());
-        toast.error("Failed to delete user");
+        dispatch(deleteUserFailure(data.message));
+        toast.error(data.message || "Failed to delete user");
       }
     } catch (error) {
       dispatch(deleteUserFailure(error.message));
@@ -222,16 +251,16 @@ const Dashboard = () => {
 
   const handleSignout = async () => {
     try {
-      const res = await fetch(apiURL + "/api/auth/signout", {
+      const res = await fetch(`${apiURL}/api/auth/signout`, {
         method: "POST",
         credentials: "include",
       });
       let data;
       try {
-        data = await res.json(); // Try to parse JSON
+        data = await res.json();
       } catch (parseError) {
         console.error("Failed to parse response:", parseError);
-        data = { message: "Server error" }; // Fallback
+        data = { message: "Server error" };
       }
       if (!res.ok) {
         console.error("Signout failed:", data?.message || "Unknown error");
@@ -302,7 +331,7 @@ const Dashboard = () => {
                 <input
                   type="text"
                   id="mobileNumber"
-                  placeholder="Contact No."
+                  placeholder="771234567"
                   value={formData.mobileNumber}
                   onChange={handleChange}
                   style={{ outline: "none", boxShadow: "none" }}
