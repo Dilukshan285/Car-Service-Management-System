@@ -61,7 +61,7 @@ export default function Header() {
             <li>
               <Link
                 className="hover:text-blue-300 transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-sm px-2 py-1"
-                to="/ProductDisplay"
+                to="/accessories"
                 aria-label="Accessories"
               >
                 Accessories

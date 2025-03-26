@@ -31,8 +31,8 @@ import Analytics from "./pages/Dilukshan/Analytics.jsx";
 import ServiceDashboard from "./pages/venushan/ServiceDashboard.jsx";
 import ServiceDetails from "./pages/venushan/ServiceDetails.jsx";
 import AboutUs from "./pages/venushan/Aboutuspage.jsx";
-import BookingForm from "./pages/venushan/AppoinmentBookingimg.jsx";
-import ImageUploadForm from "./pages/venushan/AppoinmentBooking.jsx";
+import ImageUploadForm from "./pages/venushan/AppoinmentBookingimg.jsx";
+import BookingForm from "./pages/venushan/AppoinmentBooking.jsx";
 
 // Raagul Gananathan's வேர்
 import ProductTable from './pages/Raagul/ProductTable.jsx';

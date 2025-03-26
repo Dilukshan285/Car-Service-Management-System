@@ -106,9 +106,11 @@ const Home = () => {
                 Expert mechanics, quality parts, and exceptional service for all your vehicle needs.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
+              <Link to="/booking">
                 <button className="bg-gradient-to-r from-gray-800 to-gray-900 text-white px-6 py-3 rounded-lg font-semibold hover:from-gray-900 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg">
-                  <Link to="/appointment">Book Service Now</Link>
+                  Book Service Now
                 </button>
+                </Link>
                 <button
                   onClick={handleScrollToServices}
                   className="border border-gray-300 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-100/10 transition-all duration-300"

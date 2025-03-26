@@ -166,7 +166,7 @@ const BookingForm = () => {
                 <h3 className="text-xl font-semibold text-gray-800">Car Images</h3>
                 <p className="text-sm text-gray-600">Optional: Upload photos of your car and we can address the damage via AI</p>
               </div>
-              <Link to="/appointments">
+              <Link to="/AI">
                 <button
                   type="button"
                   className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-lg font-semibold hover:from-gray-800 hover:to-gray-900 transition-all duration-300 shadow-md"
