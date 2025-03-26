@@ -15,25 +15,25 @@ const ServiceDetails = () => {
   useEffect(() => {
     const loadServiceDetails = () => {
       try {
-        // Get the task data from navigation state
-        const taskData = location.state;
-        console.log("Task data from navigation state:", taskData);
+        const appointment = location.state;
+        console.log("Appointment data from navigation state:", appointment);
 
-        if (!taskData || taskData.plate !== plate) {
+        if (!appointment || appointment.carNumberPlate !== plate) {
           throw new Error("Service data not found or plate mismatch.");
         }
 
+        // Map appointment data to serviceData
         const mappedServiceData = {
-          vehicle: taskData.vehicle,
-          color: "N/A", // Not provided by getCurrentSchedule
+          vehicle: `${appointment.make} ${appointment.model} (${appointment.year})`,
+          color: "N/A", // Still not provided by backend
           vin: "N/A", // Not provided
-          license: taskData.plate,
-          mileage: "N/A", // Not provided
-          owner: "N/A", // Not provided
+          license: appointment.carNumberPlate,
+          mileage: appointment.mileage.toString(),
+          owner: appointment.user,
           ownerPhone: "N/A", // Not provided
           lastService: "N/A", // Not provided
-          serviceType: taskData.task,
-          customerNotes: "No notes provided", // Not provided
+          serviceType: appointment.serviceType,
+          customerNotes: appointment.notes || "No notes provided",
           checklist: [
             "Oil Change",
             "Oil Filter Replacement",
@@ -43,8 +43,8 @@ const ServiceDetails = () => {
             "Brake Pad Inspection/Replacement",
             "Tire Rotation",
             "Lights and Signals Check",
-          ], // Default checklist
-          appointmentId: "temp-id", // Temporary ID since not provided; replace with actual ID if available
+          ],
+          appointmentId: appointment.id,
         };
 
         setServiceData(mappedServiceData);
@@ -79,9 +79,29 @@ const ServiceDetails = () => {
   const handleCompleteService = async () => {
     try {
       const completedTasks = Object.keys(checklist).filter((task) => checklist[task]);
-      // Since there's no /api/services/:id/complete endpoint, we'll simulate the action
-      // In a real app, you'd need to implement this endpoint to update the service status
-      console.log("Completing service with:", { status: "Completed", completedTasks, additionalIssues });
+
+      // Update appointment status via backend API
+      const response = await fetch(
+        `http://localhost:5000/api/appointments/${serviceData.appointmentId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            // Add authorization header if required
+          },
+          body: JSON.stringify({
+            status: "Completed",
+            notes: `${serviceData.customerNotes}\nAdditional Issues: ${additionalIssues || "None"}`,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to complete service");
+      }
+
       toast.success("Service completed successfully!");
       navigate("/service-dashboard");
     } catch (err) {
@@ -165,24 +185,13 @@ const ServiceDetails = () => {
                 <strong>Vehicle:</strong> {serviceData.vehicle}
               </p>
               <p className="text-gray-700">
-                <strong>Color:</strong> {serviceData.color}
-              </p>
-              <p className="text-gray-700">
-                <strong>VIN:</strong> {serviceData.vin}
-              </p>
-              <p className="text-gray-700">
                 <strong>License:</strong> {serviceData.license}
               </p>
               <p className="text-gray-700">
-                <strong>Mileage:</strong> {serviceData.mileage}
+                <strong>Mileage:</strong> {serviceData.mileage} miles
               </p>
               <h3 className="text-lg font-semibold text-gray-900 mt-4">Owner</h3>
               <p className="text-gray-700">{serviceData.owner}</p>
-              <p className="text-gray-700">{serviceData.ownerPhone}</p>
-              <h3 className="text-lg font-semibold text-gray-900 mt-4">Service History</h3>
-              <p className="text-gray-700">
-                <strong>Last Service:</strong> {serviceData.lastService}
-              </p>
             </div>
           </div>
 

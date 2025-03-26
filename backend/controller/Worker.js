@@ -450,10 +450,11 @@ const loginWorker = async (req, res) => {
 
   try {
     const normalizedEmail = email.toLowerCase();
-    const worker = await Worker.findOne({ email: normalizedEmail }).populate(
-      "tasks",
-      "carType carNumberPlate serviceType appointmentDate"
-    ); // Populate the tasks field with specific fields
+    const worker = await Worker.findOne({ email: normalizedEmail }).populate({
+      path: "tasks",
+      select: "make model year carNumberPlate mileage serviceType appointmentDate appointmentTime notes user status",
+    }); // Populate all relevant appointment fields
+
     if (!worker) {
       return res.status(404).json({
         success: false,
@@ -488,7 +489,7 @@ const loginWorker = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Worker logged in successfully",
-      data: workerData,
+      data: workerData, // Includes populated tasks with all appointment details
     });
   } catch (error) {
     console.error("Worker Login Error:", error);
@@ -501,7 +502,6 @@ const loginWorker = async (req, res) => {
 
 const getCurrentSchedule = async (req, res) => {
   try {
-    // Get worker ID from JWT token (assuming you have middleware that adds user to req)
     const workerId = req.user?.id;
     
     if (!workerId) {
@@ -511,17 +511,15 @@ const getCurrentSchedule = async (req, res) => {
       });
     }
 
-    // Find the worker and populate their tasks
-    const worker = await Worker.findById(workerId)
-      .populate({
-        path: "tasks",
-        select: "carType carNumberPlate serviceType appointmentDate appointmentTime status",
-        match: { 
-          appointmentDate: { $gte: new Date() }, // Only future and current appointments
-          status: { $ne: "Cancelled" } // Exclude cancelled appointments
-        },
-        options: { sort: { appointmentDate: 1, appointmentTime: 1 } } // Sort by date and time
-      });
+    const worker = await Worker.findById(workerId).populate({
+      path: "tasks",
+      select: "make model year carNumberPlate mileage serviceType appointmentDate appointmentTime notes user status",
+      match: { 
+        appointmentDate: { $gte: new Date() }, // Only future and current appointments
+        status: { $ne: "Cancelled" } // Exclude cancelled appointments
+      },
+      options: { sort: { appointmentDate: 1, appointmentTime: 1 } },
+    });
 
     if (!worker) {
       return res.status(404).json({
@@ -530,15 +528,21 @@ const getCurrentSchedule = async (req, res) => {
       });
     }
 
-    // Format the schedule data
+    // Format the schedule data with all appointment details
     const schedule = worker.tasks.map(task => ({
       id: task._id,
-      carType: task.carType,
+      make: task.make,
+      model: task.model,
+      year: task.year,
       carNumberPlate: task.carNumberPlate,
+      mileage: task.mileage,
       serviceType: task.serviceType,
-      date: task.appointmentDate,
-      time: task.appointmentTime,
-      fullDateTime: task.appointmentDateTime // Using the virtual field from Appointment model
+      appointmentDate: task.appointmentDate,
+      appointmentTime: task.appointmentTime,
+      notes: task.notes || "",
+      user: task.user,
+      status: task.status,
+      fullDateTime: task.appointmentDateTime, // Using the virtual field from Appointment model
     }));
 
     res.status(200).json({
@@ -550,8 +554,8 @@ const getCurrentSchedule = async (req, res) => {
           email: worker.email,
           primarySpecialization: worker.primarySpecialization,
         },
-        schedule
-      }
+        schedule,
+      },
     });
   } catch (error) {
     console.error("Get Schedule Error:", error);

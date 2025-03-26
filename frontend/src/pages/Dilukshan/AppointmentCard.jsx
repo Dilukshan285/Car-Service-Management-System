@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { toast } from "react-toastify"; // Import toast from react-toastify
+import { toast } from "react-toastify";
 
 const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned }) => {
   const [isAssigning, setIsAssigning] = useState(false);
@@ -97,7 +97,6 @@ const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned }) 
         onWorkerAssigned();
       }
     } catch (error) {
-      // Show error toast
       toast.error(error.message, {
         position: "top-right",
         autoClose: 5000,
@@ -129,6 +128,8 @@ const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned }) 
       <span className={`text-xs font-semibold px-2 py-1 rounded ${getStatusColor()}`}>
         {localAppointment.status}
       </span>
+
+      {/* User */}
       <div className="mt-4 flex items-center space-x-2">
         <svg
           className="h-5 w-5 text-gray-400"
@@ -146,6 +147,8 @@ const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned }) 
         </svg>
         <p>{localAppointment.user}</p>
       </div>
+
+      {/* Car Details */}
       <div className="mt-2 flex items-center space-x-2">
         <svg
           className="h-5 w-5 text-gray-400"
@@ -161,8 +164,10 @@ const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned }) 
             d="M8 7h12m0 0l-4-4m4 4l-4 4m-10 4H4a2 2 0 01-2-2V7a2 2 0 012-2h2m0 0V3a2 2 0 012-2h8a2 2 0 012 2v2m-2 14h2a2 2 0 002-2V9a2 2 0 00-2-2h-2"
           ></path>
         </svg>
-        <p>{localAppointment.carType}</p>
+        <p>{`${localAppointment.make} ${localAppointment.model} (${localAppointment.year})`}</p>
       </div>
+
+      {/* Service Type */}
       <div className="mt-2 flex items-center space-x-2">
         <svg
           className="h-5 w-5 text-gray-400"
@@ -180,6 +185,8 @@ const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned }) 
         </svg>
         <p>{localAppointment.serviceType}</p>
       </div>
+
+      {/* Appointment Time */}
       <div className="mt-2 flex items-center space-x-2">
         <svg
           className="h-5 w-5 text-gray-400"
@@ -197,6 +204,46 @@ const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned }) 
         </svg>
         <p>{localAppointment.appointmentTime}</p>
       </div>
+
+      {/* Mileage */}
+      <div className="mt-2 flex items-center space-x-2">
+        <svg
+          className="h-5 w-5 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M12 4v16m8-8H4"
+          ></path>
+        </svg>
+        <p>{localAppointment.mileage} miles</p>
+      </div>
+
+      {/* Notes (if present) */}
+      {localAppointment.notes && (
+        <div className="mt-2 flex items-center space-x-2">
+          <svg
+            className="h-5 w-5 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+            ></path>
+          </svg>
+          <p>{localAppointment.notes}</p>
+        </div>
+      )}
 
       {/* Worker Assignment Section */}
       {localAppointment.worker ? (
