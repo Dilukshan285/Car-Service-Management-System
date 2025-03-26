@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../components/Dilukshan/Sidebar";
 import AppointmentCard from "./AppointmentCard";
-import { ToastContainer } from "react-toastify"; // Import ToastContainer
-import "react-toastify/dist/ReactToastify.css"; // Import the CSS for react-toastify
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Manager_Dashboard = () => {
   const [activeTab, setActiveTab] = useState("All");
@@ -102,7 +102,7 @@ const Manager_Dashboard = () => {
         <div className="p-6 bg-gray-900">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold">Dashboard</h1>
+              <h1 className="text-2xl font-bold">Manager Dashboard</h1>
               <p className="text-gray-400">Manage your car service appointments</p>
             </div>
           </div>
@@ -131,21 +131,25 @@ const Manager_Dashboard = () => {
 
         {/* Appointment Cards */}
         <div className="p-6 pt-0 bg-gray-900">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredAppointments.map((appointment) => (
-              <AppointmentCard
-                key={appointment._id}
-                appointment={appointment}
-                activeTab={activeTab}
-                workers={workers}
-                onWorkerAssigned={fetchAppointments}
-              />
-            ))}
-          </div>
+          {filteredAppointments.length === 0 ? (
+            <p className="text-gray-400 text-center">No appointments found for {activeTab} status.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredAppointments.map((appointment) => (
+                <AppointmentCard
+                  key={appointment._id}
+                  appointment={appointment}
+                  activeTab={activeTab}
+                  workers={workers}
+                  onWorkerAssigned={fetchAppointments}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Add ToastContainer to render toast notifications */}
+      {/* Toast Container */}
       <ToastContainer
         position="top-right"
         autoClose={5000}

@@ -2,19 +2,30 @@ import Appointment from "../models/Appointment.js";
 import Worker from "../models/Worker.js";
 import User from "../models/Usermodel.js";
 
+// Check authentication status
+const checkAuth = (req, res) => {
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({ success: false, message: "Not authenticated" });
+  }
+  res.status(200).json({ success: true, userId: req.user.id });
+};
+
 const createAppointment = async (req, res) => {
   try {
-    const { carType, carNumberPlate, serviceType, appointmentDate, appointmentTime } = req.body;
+    const { make, model, year, carNumberPlate, mileage, serviceType, appointmentDate, appointmentTime, notes } = req.body;
+
+    // Log the request body for debugging
+    console.log("Request Body:", req.body);
 
     // Validate required fields
-    if (!carType || !carNumberPlate || !serviceType || !appointmentDate || !appointmentTime) {
+    if (!make || !model || !year || !carNumberPlate || !mileage || !serviceType || !appointmentDate || !appointmentTime) {
       return res.status(400).json({
         success: false,
-        message: "All fields (carType, carNumberPlate, serviceType, appointmentDate, appointmentTime) are required",
+        message: "All fields (make, model, year, carNumberPlate, mileage, serviceType, appointmentDate, appointmentTime) are required",
       });
     }
 
-    // Ensure the user is authenticated
+    // Ensure the user is authenticated (set by verifyToken)
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
@@ -41,7 +52,6 @@ const createAppointment = async (req, res) => {
         message: "Invalid date format",
       });
     }
-    // Set to start of day for consistency
     parsedDate.setHours(0, 0, 0, 0);
 
     // Validate appointmentTime format (HH:MM)
@@ -62,16 +72,20 @@ const createAppointment = async (req, res) => {
     if (existingAppointment) {
       return res.status(409).json({
         success: false,
-        message: "An appointment already exists for this vehicle at this date and time",
+        message: `An appointment already exists for car ${carNumberPlate} on ${appointmentDate} at ${appointmentTime}`,
       });
     }
 
     const newAppointment = new Appointment({
-      carType,
+      make,
+      model,
+      year,
       carNumberPlate,
+      mileage,
       serviceType,
       appointmentDate: parsedDate,
       appointmentTime,
+      notes: notes || "",
       user: userName,
     });
 
@@ -83,12 +97,7 @@ const createAppointment = async (req, res) => {
       data: savedAppointment,
     });
   } catch (error) {
-    if (error.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: "This car number plate already has an appointment at this time",
-      });
-    }
+    console.error("Error in createAppointment:", error);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -117,7 +126,7 @@ const getAppointments = async (req, res) => {
 const updateAppointment = async (req, res) => {
   try {
     const { appointmentId } = req.params;
-    const { carType, carNumberPlate, serviceType, appointmentDate, appointmentTime } = req.body;
+    const { make, model, year, carNumberPlate, mileage, serviceType, appointmentDate, appointmentTime, notes } = req.body;
 
     if (!appointmentId.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({
@@ -160,11 +169,15 @@ const updateAppointment = async (req, res) => {
     const updatedAppointment = await Appointment.findByIdAndUpdate(
       appointmentId,
       {
-        carType: carType || existingAppointment.carType,
+        make: make || existingAppointment.make,
+        model: model || existingAppointment.model,
+        year: year || existingAppointment.year,
         carNumberPlate: carNumberPlate || existingAppointment.carNumberPlate,
+        mileage: mileage || existingAppointment.mileage,
         serviceType: serviceType || existingAppointment.serviceType,
         appointmentDate: newDate,
         appointmentTime: newTime,
+        notes: notes !== undefined ? notes : existingAppointment.notes,
       },
       { new: true, runValidators: true }
     );
@@ -241,10 +254,10 @@ const assignWorkerToAppointment = async (req, res) => {
       });
     }
 
-    const worker = await Worker.findOne({ 
-      fullName: { $regex: new RegExp(workerName, "i") } 
+    const worker = await Worker.findOne({
+      fullName: { $regex: new RegExp(workerName, "i") },
     });
-    
+
     if (!worker) {
       return res.status(404).json({
         success: false,
@@ -252,7 +265,6 @@ const assignWorkerToAppointment = async (req, res) => {
       });
     }
 
-    // Check for conflicting appointments at the exact same time
     const conflictingAppointment = await Appointment.findOne({
       worker: worker._id,
       appointmentDate: appointment.appointmentDate,
@@ -267,22 +279,21 @@ const assignWorkerToAppointment = async (req, res) => {
       });
     }
 
-    // Assign the worker to the appointment
     appointment.worker = worker._id;
     appointment.status = "In Progress";
     const updatedAppointment = await appointment.save();
 
-    // Update worker's tasks and status
     if (!worker.tasks.includes(appointmentId)) {
       worker.tasks.push(appointmentId);
       worker.workload += 1;
-      worker.status = "busy"; // Worker remains busy as long as they have tasks
+      worker.status = "busy";
       await worker.save();
     }
 
-    // Populate the worker details in the response
-    const populatedAppointment = await Appointment.findById(appointmentId)
-      .populate("worker", "fullName email phoneNumber primarySpecialization");
+    const populatedAppointment = await Appointment.findById(appointmentId).populate(
+      "worker",
+      "fullName email phoneNumber primarySpecialization"
+    );
 
     res.status(200).json({
       success: true,
@@ -350,6 +361,7 @@ const unassignWorkerFromAppointment = async (req, res) => {
 };
 
 export default {
+  checkAuth, // Added checkAuth to exports
   createAppointment,
   getAppointments,
   updateAppointment,

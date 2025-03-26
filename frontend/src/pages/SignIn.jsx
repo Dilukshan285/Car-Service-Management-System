@@ -17,7 +17,6 @@ import OAuth from "../components/OAuth.jsx";
 
 const apiURL = "http://localhost:5000";
 
-// Animation variants for staggered form elements
 const containerVariants = {
   hidden: { opacity: 0, y: 50 },
   visible: {
@@ -44,26 +43,20 @@ const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
-  const [role, setRole] = useState("user"); // Default role is "user"
+  const [role, setRole] = useState("user");
   const { loading } = useSelector((state) => state.user);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   useEffect(() => {
-    // Reset loading state when the component mounts
     dispatch(resetLoadingState());
   }, [dispatch]);
 
   const handleChange = (e) => {
     const { id, value } = e.target;
-
-    // Update form data
     setFormData({ ...formData, [id]: value.trim() });
 
-    // Validate form fields and set errors
     let errorMessage = "";
-
-    // Check if field is empty and set required field error
     if (id === "email" && value.trim() === "") {
       errorMessage = "Email is required";
     } else if (id === "password" && value.trim() === "") {
@@ -71,8 +64,6 @@ const SignIn = () => {
     } else {
       errorMessage = validateForm(id, value);
     }
-
-    // Update the errors state with the validation result
     setErrors({ ...errors, [id]: errorMessage });
   };
 
@@ -85,7 +76,6 @@ const SignIn = () => {
     const requiredFields = ["email", "password"];
     let newErrors = {};
 
-    // Check if any required field is empty
     requiredFields.forEach((field) => {
       if (!formData[field]) {
         newErrors[field] = `${
@@ -94,7 +84,6 @@ const SignIn = () => {
       }
     });
 
-    // If there are errors, update state and show error toast
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       toast.error("Please fill out all required fields.");
@@ -104,7 +93,6 @@ const SignIn = () => {
     try {
       dispatch(signInStart());
 
-      // Determine the API endpoint based on the selected role
       const endpoint =
         role === "user"
           ? `${apiURL}/api/user/signin`
@@ -118,17 +106,25 @@ const SignIn = () => {
       });
 
       const data = await res.json();
+      console.log("Sign-in response:", data); // Debug log
 
       if (res.ok) {
+        // Assuming data contains the token in data.token or similar
+        const token = data.token || data.data?.token;
+        if (token) {
+          localStorage.setItem("access_token", token); // Store token in localStorage
+          console.log("Token stored in localStorage:", token);
+        } else {
+          console.warn("No token found in response:", data);
+        }
         dispatch(signInSuccess(data));
-        // Navigate based on role
         if (role === "user") {
           navigate("/"); // User dashboard
         } else {
           navigate("/service-dashboard"); // Worker dashboard
         }
       } else {
-        toast.error("Invalid credentials. Please try again.");
+        toast.error(data.message || "Invalid credentials. Please try again.");
         dispatch(resetLoadingState());
       }
     } catch (error) {
@@ -165,7 +161,6 @@ const SignIn = () => {
           Streamlining Your Car Service Experience with Revup.
         </motion.p>
         <form className="space-y-4" onSubmit={handleSubmit}>
-          {/* Role Selection Dropdown */}
           <motion.div variants={fieldVariants} className="flex flex-col">
             <label htmlFor="role" className="text-sm text-gray-600 mb-1">
               Sign in as:
@@ -183,7 +178,6 @@ const SignIn = () => {
             </motion.select>
           </motion.div>
 
-          {/* Email Field */}
           <motion.div variants={fieldVariants} className="flex flex-col">
             <motion.div
               whileHover={{ borderColor: "#93C5FD" }}
@@ -219,7 +213,6 @@ const SignIn = () => {
             )}
           </motion.div>
 
-          {/* Password Field */}
           <motion.div variants={fieldVariants} className="flex flex-col">
             <motion.div
               whileHover={{ borderColor: "#93C5FD" }}
@@ -262,11 +255,7 @@ const SignIn = () => {
             )}
           </motion.div>
 
-          {/* Forgot Password Link */}
-          <motion.div
-            variants={fieldVariants}
-            className="text-right text-sm"
-          >
+          <motion.div variants={fieldVariants} className="text-right text-sm">
             <Link to="/recovery-email">
               <motion.span
                 whileHover={{ scale: 1.05 }}
@@ -278,7 +267,6 @@ const SignIn = () => {
             </Link>
           </motion.div>
 
-          {/* Submit Button */}
           <motion.button
             variants={fieldVariants}
             whileHover={{ scale: 1.02 }}
@@ -299,12 +287,10 @@ const SignIn = () => {
             )}
           </motion.button>
 
-          {/* OAuth */}
           <motion.div variants={fieldVariants}>
             <OAuth />
           </motion.div>
 
-          {/* Sign Up Link */}
           <motion.p
             variants={fieldVariants}
             className="text-start mt-3 text-sm text-gray-500"

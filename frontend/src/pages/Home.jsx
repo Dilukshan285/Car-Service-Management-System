@@ -579,8 +579,6 @@ const Home = () => {
 
       <Footer />
 
-      <Footer/>
-
     </main>
   );
 };
