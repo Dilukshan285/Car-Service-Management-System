@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import Signup from "./pages/Signup.jsx";
 import OTP from "./pages/OTP.jsx";
 import SignIn from "./pages/SignIn.jsx";
@@ -31,44 +32,71 @@ import AboutUs from './pages/Aboutuspage.jsx';
 // Raagul Gananathan's வேர்
 import ProductTable from './pages/Raagul/ProductTable.jsx';
 
+// Wrapper component to manage header visibility
+function AppWrapper() {
+  const location = useLocation();
+  const [showHeader, setShowHeader] = useState(true);
+
+  useEffect(() => {
+    // Define routes where header should not be shown
+    const hideHeaderRoutes = [
+      '/service-dashboard', 
+      '/service-details/'
+    ];
+
+    // Check if current path matches routes to hide header
+    const shouldHideHeader = hideHeaderRoutes.some(route => 
+      location.pathname === route || 
+      location.pathname.startsWith(route)
+    );
+
+    setShowHeader(!shouldHideHeader);
+  }, [location]);
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      {showHeader && <Header />}
+      <main className="flex-grow">
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/service-dashboard" element={<ServiceDashboard />} />
+          <Route path="/service-details/:plate" element={<ServiceDetails />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/" element={<UserHome />} />
+          <Route path="/sign-up" element={<Signup />} />
+          <Route path="/sign-in" element={<SignIn />} />
+          <Route path="/otp" element={<OTP />} />
+          <Route path="/recovery-email" element={<RecoveryPage />} />
+          <Route path="/recovery-otp" element={<RecoveryOTP />} />
+          <Route path="/recovery-password" element={<RecoveryPassword />} />
+          <Route path="/employee-signin" element={<EmployeeSignin />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/add-employee" element={<AddEmployeeForm />} />
+
+          <Route element={<PrivateRoute />}>
+            <Route path="/dashboard/profile" element={<UserDashboard />} />
+          </Route>
+
+          <Route path="/admin-user" element={<AdminDashboard />} />
+
+          <Route path="/manager_dashboard" element={<Manager_Dashboard />} />
+          <Route path="/appointments" element={<Appointments />} />
+          <Route path="/workers" element={<Workers />} />
+          <Route path="/customers" element={<Customers />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/vehicles" element={<Vehicles />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/Product" element={<ProductTable />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
 function App() {
   return (
     <Router>
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/service-dashboard" element={<ServiceDashboard />} />
-            <Route path="/service-details/:plate" element={<ServiceDetails />} />
-            <Route path="/about" element={<AboutUs />} />
-            <Route path="/" element={<UserHome />} />
-            <Route path="/sign-up" element={<Signup />} />
-            <Route path="/sign-in" element={<SignIn />} />
-            <Route path="/otp" element={<OTP />} />
-            <Route path="/recovery-email" element={<RecoveryPage />} />
-            <Route path="/recovery-otp" element={<RecoveryOTP />} />
-            <Route path="/recovery-password" element={<RecoveryPassword />} />
-            <Route path="/employee-signin" element={<EmployeeSignin />} />
-            <Route path="/unauthorized" element={<Unauthorized />} />
-            <Route path="/add-employee" element={<AddEmployeeForm />} />
-
-            <Route element={<PrivateRoute />}>
-              <Route path="/dashboard/profile" element={<UserDashboard />} />
-              <Route path="/admin-user" element={<AdminDashboard />} />
-            </Route>
-
-            <Route path="/manager_dashboard" element={<Manager_Dashboard />} />
-            <Route path="/appointments" element={<Appointments />} />
-            <Route path="/workers" element={<Workers />} />
-            <Route path="/customers" element={<Customers />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/vehicles" element={<Vehicles />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/Product" element={<ProductTable />} />
-          </Routes>
-        </main>
-      </div>
+      <AppWrapper />
     </Router>
   );
 }

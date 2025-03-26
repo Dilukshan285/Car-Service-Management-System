@@ -1,9 +1,10 @@
 import { Router } from "express";
 import AppointmentController from "../controller/Appointment.js";
+import verifyToken from "../middleware/verifyToken.js";
 
 const router = Router();
 
-router.post("/book", AppointmentController.createAppointment);
+router.post("/book", verifyToken,AppointmentController.createAppointment);
 router.get("/", AppointmentController.getAppointments);
 router.put("/update/:appointmentId", AppointmentController.updateAppointment);
 router.delete("/delete/:appointmentId", AppointmentController.deleteAppointment);

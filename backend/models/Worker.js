@@ -11,6 +11,9 @@ const workerSchema = new Schema(
       required: true,
       unique: true,
     },
+    password: {
+      type: String,
+    },
     phoneNumber: {
       type: String,
       required: true,
@@ -55,9 +58,13 @@ const workerSchema = new Schema(
       enum: ["available", "busy"],
       default: "available",
     },
+    role: {
+      type: String,
+      default: "worker",
+    },
     profilePicture: {
       type: String,
-      default: 'https://tse2.mm.bing.net/th?id=OIP.eCrcK2BiqwBGE1naWwK3UwHaHa&pid=Api&P=0&h=180'
+      default: "https://tse2.mm.bing.net/th?id=OIP.eCrcK2BiqwBGE1naWwK3UwHaHa&pid=Api&P=0&h=180",
     },
     tasks: [
       {
@@ -65,6 +72,9 @@ const workerSchema = new Schema(
         ref: "Appointment", // Reference to the Appointment model
       },
     ],
+    lastLogin: {
+      type: Date, // Add lastLogin field to track login activity
+    },
   },
   { timestamps: true }
 );
