@@ -45,26 +45,19 @@ import PaymentPage from './pages/Raagul/PaymentPage.jsx';
 import OrderManagementPage from './pages/Raagul/OrderManagementPage.jsx';
 import ReviewManagementPage from './pages/Raagul/ReviewManagementPage.jsx';
 
-
-
-// Wrapper component to manage header visibility
 function AppWrapper() {
   const location = useLocation();
   const [showHeader, setShowHeader] = useState(true);
 
   useEffect(() => {
-    // Define routes where header should not be shown
     const hideHeaderRoutes = [
       '/service-dashboard', 
       '/service-details/'
     ];
-
-    // Check if current path matches routes to hide header
     const shouldHideHeader = hideHeaderRoutes.some(route => 
       location.pathname === route || 
       location.pathname.startsWith(route)
     );
-
     setShowHeader(!shouldHideHeader);
   }, [location]);
 
@@ -88,12 +81,24 @@ function AppWrapper() {
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/add-employee" element={<AddEmployeeForm />} />
 
+          {/* Protected Routes */}
           <Route element={<PrivateRoute />}>
             <Route path="/dashboard/profile" element={<UserDashboard />} />
+            <Route path="/admin-user" element={<AdminDashboard />} />
           </Route>
 
-          <Route path="/admin-user" element={<AdminDashboard />} />
+          {/* Raagul's Routes */}
+          <Route path="/Product" element={<ProductTable />} />
+          <Route path="/accessories" element={<ProductPage />} />
+          <Route path="/ProductDetails/:id" element={<ProductDetail />} />
+          <Route path="/myorders" element={<MyOrdersPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/payment" element={<PaymentPage />} />
+          <Route path="/adminOrder" element={<OrderManagementPage />} />
+          <Route path="/adminReview" element={<ReviewManagementPage />} />
 
+          {/* Dilukshan's Routes */}
           <Route path="/manager_dashboard" element={<Manager_Dashboard />} />
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/workers" element={<Workers />} />
@@ -101,7 +106,10 @@ function AppWrapper() {
           <Route path="/services" element={<Services />} />
           <Route path="/vehicles" element={<Vehicles />} />
           <Route path="/analytics" element={<Analytics />} />
-          <Route path="/Product" element={<ProductTable />} />
+
+          {/* Venushan's Routes */}
+          <Route path="/booking" element={<BookingForm />} />
+          <Route path="/AI" element={<ImageUploadForm />} />
         </Routes>
       </main>
     </div>
@@ -112,44 +120,6 @@ function App() {
   return (
     <Router>
       <AppWrapper />
-
-
-            {/* Protected Routes */}
-
-            <Route element={<PrivateRoute />}>
-              <Route path="/dashboard/profile" element={<UserDashboard />} />
-              <Route path="/admin-user" element={<AdminDashboard />} />
-            </Route>
-
-
-            {/* Raagul's Routes */}
-            <Route path="/Product" element={<ProductTable />} />
-            <Route path="/accessories" element={<ProductPage />} />
-            <Route path="/ProductDetails/:id" element={<ProductDetail />} />
-            <Route path="/myorders" element={<MyOrdersPage />} />
-            <Route path="/cart" element={<CartPage />} />
-            <Route path="/checkout" element={<CheckoutPage />} />
-            <Route path="/payment" element={<PaymentPage />} />
-            <Route path="/adminOrder" element={<OrderManagementPage />} />
-            <Route path="/adminReview" element={<ReviewManagementPage />} />
-
-            {/* Dilukshan's Routes */}
-            <Route path="/manager_dashboard" element={<Manager_Dashboard />} />
-            <Route path="/appointments" element={<Appointments />} />
-            <Route path="/workers" element={<Workers />} />
-            <Route path="/customers" element={<Customers />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/vehicles" element={<Vehicles />} />
-            <Route path="/analytics" element={<Analytics />} />
-
-
-            {/* Venushan's Routes */}
-            <Route path="/booking" element={<BookingForm />} />
-            <Route path="/AI" element={<ImageUploadForm />} />
-          </Routes>
-        </main>
-      </div>
-
     </Router>
   );
 }
