@@ -1,20 +1,37 @@
 import React, { useState } from "react";
 import { ClipLoader } from "react-spinners";
-import {
-  FaUser,
-  FaEnvelope,
-  FaLock,
-  FaEyeSlash,
-  FaEye,
-  // FaExclamationCircle,
-} from "react-icons/fa";
+import { FaUser, FaEnvelope, FaLock, FaEyeSlash, FaEye } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
-import { validateForm } from "../Validation/validation_SignUp.jsx"; // Assuming other validations are here
+import { validateForm } from "../Validation/validation_SignUp.jsx";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { motion } from "framer-motion";
 import OAuth from "../components/OAuth.jsx";
 
 const apiURL = "http://localhost:5000";
+
+// Animation variants for staggered form fields
+const containerVariants = {
+  hidden: { opacity: 0, y: 50 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: "easeOut",
+      staggerChildren: 0.2,
+    },
+  },
+};
+
+const fieldVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.4, ease: "easeOut" },
+  },
+};
 
 function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -93,15 +110,11 @@ function RegisterForm() {
       if (res.ok) {
         navigate("/OTP");
       } else if (res.status === 400) {
-        return toast.error(
-          "Email already exists. Please use a different email."
-        );
+        return toast.error("Email already exists. Please use a different email.");
       } else {
-        // Stop loading for unexpected server response
         toast.error("An unexpected error occurred. Please try again later.");
       }
     } catch (error) {
-      // Stop loading on catch block due to an error
       toast.error("An unexpected error occurred. Please try again later.");
     } finally {
       setLoading(false);
@@ -118,16 +131,12 @@ function RegisterForm() {
     if (file) {
       const validFileTypes = ["image/jpeg", "image/png", "image/gif"];
       if (!validFileTypes.includes(file.type)) {
-        return toast.error(
-          "Invalid file type. Please upload a JPEG, PNG, or GIF image."
-        );
+        return toast.error("Invalid file type. Please upload a JPEG, PNG, or GIF image.");
       }
 
       const maxSize = 2 * 1024 * 1024;
       if (file.size > maxSize) {
-        return toast.error(
-          "File size exceeds the 2MB limit. Please upload a smaller image."
-        );
+        return toast.error("File size exceeds the 2MB limit. Please upload a smaller image.");
       }
 
       setProfileImage(file);
@@ -135,14 +144,32 @@ function RegisterForm() {
   };
 
   return (
-    <div className="bg-white-100 flex items-center justify-center min-h-screen">
-      <div className="bg-white shadow-lg p-8 rounded-lg w-full max-w-md border border-green-300 hover:border-green-400">
-        <h2 className="text-3xl font-bold text-center mb-6 text-green-800">
-          Register
-        </h2>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div className="flex justify-center mb-6">
-            <div className="relative">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-gray-50">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="bg-gradient-to-br from-white to-blue-50 shadow-lg p-8 rounded-2xl w-full max-w-lg border border-gray-200 hover:border-blue-200 transition-all duration-300"
+      >
+        <motion.h2
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="text-3xl font-extrabold text-center mb-6 text-blue-500"
+        >
+          Register for Revup
+        </motion.h2>
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          <motion.div
+            variants={fieldVariants}
+            className="flex justify-center mb-3"
+          >
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className="relative"
+            >
               <input
                 type="file"
                 accept="image/*"
@@ -155,91 +182,111 @@ function RegisterForm() {
                   <img
                     src={URL.createObjectURL(profileImage)}
                     alt="Profile"
-                    className="w-24 h-24 rounded-full object-cover border border-green-300"
+                    className="w-20 h-20 rounded-full object-cover border-2 border-blue-300 shadow-sm"
                   />
                 ) : (
-                  <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center">
+                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center border-2 border-blue-300 shadow-sm">
                     <FaUser className="text-gray-400 text-3xl" />
                   </div>
                 )}
               </label>
-            </div>
-          </div>
-          <p className="text-center text-sm">Choose your profile picture</p>
+            </motion.div>
+          </motion.div>
+          <motion.p
+            variants={fieldVariants}
+            className="text-center text-sm text-gray-500"
+          >
+            Choose your profile picture
+          </motion.p>
 
           {/* First Name and Last Name Fields */}
-          <div className="flex flex-row space-x-2">
-            <div className="flex flex-col">
-              <div
+          <motion.div
+            variants={fieldVariants}
+            className="flex flex-row space-x-4"
+          >
+            <div className="flex flex-col w-full">
+              <motion.div
+                whileHover={{ borderColor: "#93C5FD" }}
+                transition={{ duration: 0.3 }}
                 className={`flex items-center border ${
-                  errors.firstName ? "border-red-500" : "border-green-300"
-                } py-2 px-3 rounded-lg focus-within:border-green-500`}
+                  errors.firstName ? "border-red-500" : "border-gray-200"
+                } py-2 px-3 rounded-lg focus-within:ring-2 focus-within:ring-blue-300 focus-within:border-transparent transition-all`}
               >
                 <FaUser
                   className={`mr-3 ${
-                    errors.firstName ? "text-red-500" : "text-green-500"
+                    errors.firstName ? "text-red-500" : "text-blue-400"
                   }`}
                 />
                 <input
                   type="text"
                   id="firstName"
-                  placeholder="First name"
+                  placeholder="First Name"
                   style={{ outline: "none", boxShadow: "none" }}
-                  className="appearance-none bg-transparent border-none w-full text-gray-700 py-1 px-2 leading-tight focus:outline-none placeholder-gray-600"
+                  className="appearance-none bg-transparent border-none w-full text-gray-700 py-1 px-2 leading-tight focus:outline-none placeholder-gray-500 placeholder:font-semibold  text-base"
                   value={formData.firstName || ""}
                   onChange={handleChange}
                   autoComplete="off"
                 />
-              </div>
+              </motion.div>
               {errors.firstName && (
-                <div className="flex items-center mt-2 text-red-500 text-sm h-4">
-                  {/* <FaExclamationCircle className="mr-1 flex-shrink-0" /> */}
-                  <span className="text-xs">{errors.firstName}</span>
-                </div>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center mt-3 text-red-500 text-sm h-4"
+                >
+                  <span className="text-sm">{errors.firstName}</span>
+                </motion.div>
               )}
             </div>
 
-            <div className="flex flex-col">
-              <div
+            <div className="flex flex-col w-full">
+              <motion.div
+                whileHover={{ borderColor: "#93C5FD" }}
+                transition={{ duration: 0.3 }}
                 className={`flex items-center border ${
-                  errors.lastName ? "border-red-500" : "border-green-300"
-                } py-2 px-3 rounded-lg focus-within:border-green-500`}
+                  errors.lastName ? "border-red-500" : "border-gray-200"
+                } py-2 px-3 rounded-lg focus-within:ring-2 focus-within:ring-blue-300 focus-within:border-transparent transition-all`}
               >
                 <FaUser
                   className={`mr-3 ${
-                    errors.lastName ? "text-red-500" : "text-green-500"
+                    errors.lastName ? "text-red-500" : "text-blue-400"
                   }`}
                 />
                 <input
                   type="text"
                   id="lastName"
-                  placeholder="Last name"
+                  placeholder="Last Name"
                   style={{ outline: "none", boxShadow: "none" }}
-                  className="appearance-none bg-transparent border-none w-full text-gray-700 py-1 px-2 leading-tight focus:outline-none placeholder-gray-600"
+                  className="appearance-none bg-transparent border-none w-full text-gray-700 py-1 px-2 leading-tight focus:outline-none placeholder-gray-500 placeholder:font-semibold  text-base"
                   value={formData.lastName || ""}
                   onChange={handleChange}
                   autoComplete="off"
                 />
-              </div>
+              </motion.div>
               {errors.lastName && (
-                <div className="flex items-center mt-2 text-red-500 text-sm h-4">
-                  {/* <FaExclamationCircle className="mr-1 flex-shrink-0" /> */}
-                  <span className="text-xs">{errors.lastName}</span>
-                </div>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center mt-3 text-red-500 text-sm h-4"
+                >
+                  <span className="text-sm">{errors.lastName}</span>
+                </motion.div>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Email Field */}
-          <div className="flex flex-col">
-            <div
+          <motion.div variants={fieldVariants} className="flex flex-col">
+            <motion.div
+              whileHover={{ borderColor: "#93C5FD" }}
+              transition={{ duration: 0.3 }}
               className={`flex items-center border ${
-                errors.email ? "border-red-500" : "border-green-300"
-              } py-2 px-3 rounded-lg focus-within:border-green-500`}
+                errors.email ? "border-red-500" : "border-gray-200"
+              } py-2 px-3 rounded-lg focus-within:ring-2 focus-within:ring-blue-300 focus-within:border-transparent transition-all`}
             >
               <FaEnvelope
                 className={`mr-3 ${
-                  errors.email ? "text-red-500" : "text-green-500"
+                  errors.email ? "text-red-500" : "text-blue-400"
                 }`}
               />
               <input
@@ -247,31 +294,35 @@ function RegisterForm() {
                 id="email"
                 placeholder="Email"
                 style={{ outline: "none", boxShadow: "none" }}
-                className="appearance-none bg-transparent border-none w-full text-gray-700 py-1 px-2 leading-tight placeholder-gray-600"
+                className="appearance-none bg-transparent border-none w-full text-gray-700 py-1 px-2 leading-tight placeholder-gray-500 placeholder:font-semibold text-base"
                 value={formData.email || ""}
                 onChange={handleChange}
                 autoComplete="off"
               />
-            </div>
-
+            </motion.div>
             {errors.email && (
-              <div className="flex items-center mt-1 mb-0 text-red-500 text-sm h-4">
-                {/* <FaExclamationCircle className="mr-1" /> */}
-                <span className="text-xs">{errors.email}</span>
-              </div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center mt-3 text-red-500 text-sm h-4"
+              >
+                <span className="text-sm">{errors.email}</span>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
 
           {/* Password Field */}
-          <div className="flex flex-col">
-            <div
+          <motion.div variants={fieldVariants} className="flex flex-col">
+            <motion.div
+              whileHover={{ borderColor: "#93C5FD" }}
+              transition={{ duration: 0.3 }}
               className={`flex items-center border ${
-                errors.password ? "border-red-500" : "border-green-300"
-              } py-2 px-3 rounded-lg focus-within:border-green-500`}
+                errors.password ? "border-red-500" : "border-gray-200"
+              } py-2 px-3 rounded-lg focus-within:ring-2 focus-within:ring-blue-300 focus-within:border-transparent transition-all`}
             >
               <FaLock
                 className={`mr-3 ${
-                  errors.password ? "text-red-500" : "text-green-500"
+                  errors.password ? "text-red-500" : "text-blue-400"
                 }`}
               />
               <input
@@ -279,30 +330,37 @@ function RegisterForm() {
                 id="password"
                 placeholder="Password"
                 style={{ outline: "none", boxShadow: "none" }}
-                className="appearance-none bg-transparent border-none w-full text-gray-700 py-1 px-2 leading-tight focus:outline-none placeholder-gray-600"
+                className="appearance-none bg-transparent border-none w-full text-gray-700 py-1 px-2 leading-tight focus:outline-none placeholder-gray-500 placeholder:font-semibold  text-base"
                 value={formData.password || ""}
                 onChange={handleChange}
                 autoComplete="off"
               />
-              <span
+              <motion.span
+                whileHover={{ scale: 1.1 }}
                 onClick={togglePasswordVisibility}
-                className="cursor-pointer text-gray-600"
+                className="cursor-pointer text-gray-500 hover:text-blue-500"
               >
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
-              </span>
-            </div>
+              </motion.span>
+            </motion.div>
             {errors.password && (
-              <div className="flex items-center mt-2 mb-0 text-red-500 text-sm h-4">
-                {/* <FaExclamationCircle className="mr-1" /> */}
-                <span className="text-xs">{errors.password}</span>
-              </div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center mt-3 text-red-500 text-sm h-4"
+              >
+                <span className="text-sm">{errors.password}</span>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
 
           {/* Submit Button */}
-          <button
-            type="submit"
-            className="w-full bg-green-600 text-white py-2 rounded-xl font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 flex justify-center"
+          <motion.button
+            variants={fieldVariants}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full bg-blue-500 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 flex justify-center items-center transition-colors text-base"
+            disabled={loading}
           >
             {loading ? (
               <>
@@ -314,17 +372,24 @@ function RegisterForm() {
             ) : (
               "Register"
             )}
-          </button>
-          <OAuth />
+          </motion.button>
+
+          <motion.div variants={fieldVariants}>
+            <OAuth />
+          </motion.div>
+
           {/* Already have an account */}
-          <p className="text-center text-sm mt-4">
+          <motion.p
+            variants={fieldVariants}
+            className="text-center text-sm mt-3 text-gray-500"
+          >
             Already have an account?{" "}
-            <Link to="/sign-in" className="text-red-600 hover:underline">
+            <Link to="/sign-in" className="text-orange-500 hover:underline font-medium">
               Sign in here
             </Link>
-          </p>
+          </motion.p>
         </form>
-      </div>
+      </motion.div>
       <ToastContainer />
     </div>
   );

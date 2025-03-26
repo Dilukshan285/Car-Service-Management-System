@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import jsPDF from "jspdf";
 import { FaSearch, FaTrash, FaUserPlus, FaFilter } from "react-icons/fa";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ClipLoader } from "react-spinners";
-import { useSelector } from "react-redux";
 import { toast, ToastContainer } from "react-toastify";
 import { Modal } from "flowbite-react";
 import { HiOutlineExclamationCircle } from "react-icons/hi";
@@ -20,8 +19,6 @@ export default function AdminDashboard() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
-  const { currentUser } = useSelector((state) => state.user);
-  const navigate = useNavigate();
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -47,12 +44,8 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (currentUser && currentUser.email === "gspuser2002@gmail.com") {
-      fetchUsers();
-    } else {
-      navigate("/unauthorized");
-    }
-  }, [currentUser, navigate, fetchUsers]);
+    fetchUsers();
+  }, [fetchUsers]);
 
   const filteredUsers = users.filter((user) => {
     const nameMatch =
@@ -405,7 +398,7 @@ export default function AdminDashboard() {
         <Link to={"/add-employee"}>
           <button className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300">
             <FaUserPlus />
-            <span className>Add Manager</span>
+            <span>Add Manager</span>
           </button>
         </Link>
       </div>
@@ -413,10 +406,10 @@ export default function AdminDashboard() {
       {/* Users Grid */}
       {filteredUsers.length === 0 ? (
         <div className="text-center text-gray-500">
-          <p className="text-lg font-semibold"> User not found </p>
+          <p className="text-lg font-semibold">User not found</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1  sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredUsers.map((user, index) => (
             <div
               key={index}
@@ -541,20 +534,6 @@ export default function AdminDashboard() {
                     </p>
                   </div>
                 </div>
-              </div>
-
-              {/* Delete Button */}
-              <div className="mt-6 flex justify-center">
-                <button
-                  onClick={() => {
-                    setShowModal(true);
-                    setSelectedUserId(user._id); // Set selected user ID
-                  }}
-                  className="flex items-center justify-center space-x-2 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300"
-                >
-                  <FaTrash />
-                  <span>Delete</span>
-                </button>
               </div>
             </div>
           ))}

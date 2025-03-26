@@ -18,36 +18,50 @@ const updateUserProfile = async (req, res, next) => {
     }
 
     try {
+      // Check for duplicate mobile number
       if (req.body.mobile) {
+        const mobileValue = Number(req.body.mobile);
+        if (isNaN(mobileValue) || mobileValue <= 0) {
+          return next(errorHandler(400, "Invalid mobile number"));
+        }
         const existingUser = await User.findOne({
-          mobile: req.body.mobile,
+          mobile: mobileValue,
           _id: { $ne: req.params.userId },
         });
-        if (existingUser) return next(errorHandler(404, "Mobile number already exists"));
+        if (existingUser) {
+          return next(errorHandler(404, "Mobile number already exists"));
+        }
       }
 
+      // Check for duplicate email
       if (req.body.email) {
         const existingUser = await User.findOne({
           email: req.body.email.toLowerCase(),
           _id: { $ne: req.params.userId },
         });
-        if (existingUser)
+        if (existingUser) {
           return next(
-            errorHandler(405, "Email address already exists. Please use a different email.")
+            errorHandler(
+              405,
+              "Email address already exists. Please use a different email."
+            )
           );
+        }
       }
 
-      const updatedFields = {
-        first_name: req.body.first_name,
-        last_name: req.body.last_name,
-        email: req.body.email?.toLowerCase(),
-        postal: req.body.postal,
-        area: req.body.area,
-        district: req.body.district,
-        mobile: req.body.mobile,
-        address: req.body.address,
-      };
+      // Build the fields to update
+      const updatedFields = {};
 
+      if (req.body.first_name) updatedFields.first_name = req.body.first_name;
+      if (req.body.last_name) updatedFields.last_name = req.body.last_name;
+      if (req.body.email) updatedFields.email = req.body.email.toLowerCase();
+      if (req.body.postal) updatedFields.postal = Number(req.body.postal);
+      if (req.body.area) updatedFields.area = req.body.area;
+      if (req.body.district) updatedFields.district = req.body.district;
+      if (req.body.mobile) updatedFields.mobile = Number(req.body.mobile);
+      if (req.body.address) updatedFields.address = req.body.address;
+
+      // Handle avatar upload
       if (req.file) {
         const compressedImageBuffer = await sharp(req.file.buffer)
           .resize(300, 300)
@@ -58,14 +72,25 @@ const updateUserProfile = async (req, res, next) => {
         updatedFields.avatar = avatar;
       }
 
+      // Update the user
       const updatedUser = await User.findByIdAndUpdate(
         req.params.userId,
         { $set: updatedFields },
-        { new: true }
+        { new: true, runValidators: true }
       );
+
+      if (!updatedUser) {
+        return next(errorHandler(404, "User not found"));
+      }
+
       const { password, ...rest } = updatedUser._doc;
-      res.status(200).json(rest);
+      res.status(200).json({
+        success: true,
+        message: "User profile updated successfully",
+        data: rest,
+      });
     } catch (error) {
+      console.error("Update User Profile Error:", error);
       next(error);
     }
   });

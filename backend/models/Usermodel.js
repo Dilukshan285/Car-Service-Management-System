@@ -23,9 +23,8 @@ const schema = new Schema(
       type: Number,
     },
     mobile: {
-      type: Number,
-      unique: true,
-      sparse: true,
+      type: String, // Changed to String to handle various formats
+      sparse: true, // Still allows multiple documents without a mobile field
     },
     address: {
       type: String,
@@ -46,25 +45,23 @@ const schema = new Schema(
     },
     role: {
       type: String,
-      default: "User",
+      default: "user",
     },
     status: {
-      // New field to track the status
       type: String,
       enum: ["active", "inactive"],
       default: "inactive",
     },
     lastLogin: {
-      // New field to track the last login time
       type: Date,
     },
-    cartData: { type: Object, default: {} },
+    cartData: {
+      type: Object,
+      default: {},
+    },
   },
-  { timestamps: true, minimize: false } // Ensure this is at the end of the schema definition
+  { timestamps: true, minimize: false }
 );
 
-// Define the User model (if it doesn't exist, create it)
 const User = model("User", schema);
-
-// Export the User model using ES module syntax
 export default User;
