@@ -5,7 +5,8 @@ import UpdateWorkerModal from "./UpdateWorkerModal";
 import Worker_Details from "./Worker_Details";
 import DeleteConfirmationModal from "./DeleteConfirmationModal";
 import axios from "axios";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Workers = () => {
   const [viewMode, setViewMode] = useState("Grid");
@@ -86,12 +87,16 @@ const Workers = () => {
     if (!workerToDelete) return;
     try {
       await axios.delete(`http://localhost:5000/api/workers/delete/${workerToDelete._id}`);
-      toast.success("Worker deleted successfully");
       setWorkers(workers.filter((worker) => worker._id !== workerToDelete._id));
+      toast.success("Worker deleted successfully");
+      // Delay closing the modal to allow the toast to render
+      setTimeout(() => {
+        setIsDeleteModalOpen(false);
+        setWorkerToDelete(null);
+      }, 500); // 500ms delay
     } catch (err) {
       console.error("Error deleting worker:", err);
       toast.error("Failed to delete worker. Please try again.");
-    } finally {
       setIsDeleteModalOpen(false);
       setWorkerToDelete(null);
     }
@@ -540,6 +545,7 @@ const Workers = () => {
           onConfirm={confirmDeleteWorker}
           workerName={workerToDelete?.fullName || ""}
         />
+        <ToastContainer />
       </div>
     </div>
   );

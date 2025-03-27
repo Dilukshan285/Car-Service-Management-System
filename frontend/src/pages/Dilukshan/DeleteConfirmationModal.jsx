@@ -1,4 +1,3 @@
-// DeleteConfirmationModal.jsx
 import React from "react";
 
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, workerName }) => {

@@ -6,15 +6,29 @@ import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import { z } from "zod";
 
-// Define Zod schema
+// Define Zod schema with specific validations
 const formSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+  name: z
+    .string()
+    .min(2, { message: "Name must be at least 2 characters." })
+    .regex(/^[a-zA-Z\s]+$/, { message: "Name can only contain letters and spaces." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
-  phone: z.string().min(10, { message: "Please enter a valid phone number." }),
+  phone: z
+    .string()
+    .regex(/^07[0-2,5-8]\d{7}$/, {
+      message: "Phone number must be a valid Sri Lankan mobile number (e.g., 0711234567).",
+    }),
   address: z.string().min(5, { message: "Address must be at least 5 characters." }),
-  nic: z.string().min(10, { message: "NIC must be at least 10 characters." }), // Adjust length as needed
+  nic: z.string().regex(/^(?:\d{12}|\d{9}[Vv])$/, {
+    message: "NIC must be 12 digits (e.g., 200205602825) or 9 digits + 'V' (e.g., 612353921V).",
+  }),
   specialization: z.string({ required_error: "Please select a specialization." }),
-  hireDate: z.date({ required_error: "Please select a hire date." }),
+  hireDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), { message: "Please select a valid date." })
+    .refine((val) => new Date(val) <= new Date("2025-03-27"), {
+      message: "Hire date cannot be in the future.",
+    }),
   availability: z.array(z.string()).min(1, { message: "Select at least one day of availability." }),
   skills: z.array(z.string()).min(1, { message: "Select at least one skill." }),
   certifications: z.array(z.string()),
@@ -39,13 +53,17 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
     weeklyAvailability: [],
     additionalNotes: "",
   });
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   useEffect(() => {
-    const today = new Date("2025-03-27"); // Updated to current date
+    const today = new Date("2025-03-27"); // Current date
     setFormData((prev) => ({
       ...prev,
       hireDate: today.toISOString().split("T")[0],
     }));
+    setTouched((prev) => ({ ...prev, hireDate: true }));
+    validateField("hireDate", today.toISOString().split("T")[0]);
   }, []);
 
   const skillOptions = [
@@ -66,9 +84,86 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
     "Transmission Specialist",
   ];
 
+  const validateField = (fieldName, value) => {
+    // Map formData field names to Zod schema keys
+    const fieldMap = {
+      fullName: "name",
+      email: "email",
+      phoneNumber: "phone",
+      address: "address",
+      nic: "nic",
+      primarySpecialization: "specialization",
+      hireDate: "hireDate",
+      weeklyAvailability: "availability",
+      skills: "skills",
+      certifications: "certifications",
+      additionalNotes: "notes",
+    };
+
+    const zodFieldName = fieldMap[fieldName] || fieldName;
+
+    // Ensure skills, certifications, and availability are arrays
+    const safeSkills = Array.isArray(formData.skills) ? formData.skills : [];
+    const safeCertifications = Array.isArray(formData.certifications) ? formData.certifications : [];
+    const safeAvailability = Array.isArray(formData.weeklyAvailability) ? formData.weeklyAvailability : [];
+
+    const validationData = {
+      name: formData.fullName,
+      email: formData.email,
+      phone: formData.phoneNumber,
+      address: formData.address,
+      nic: formData.nic,
+      specialization: formData.primarySpecialization,
+      hireDate: formData.hireDate,
+      availability: safeAvailability,
+      skills: safeSkills,
+      certifications: safeCertifications,
+      notes: formData.additionalNotes,
+      [zodFieldName]: value, // Override the field being validated
+    };
+
+    try {
+      formSchema.parse(validationData);
+      setErrors((prev) => ({ ...prev, [zodFieldName]: "" }));
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldError = error.errors.find((err) => err.path[0] === zodFieldName);
+        setErrors((prev) => ({
+          ...prev,
+          [zodFieldName]: fieldError ? fieldError.message : "",
+        }));
+      } else {
+        console.error(`Unexpected error during validation of ${fieldName}:`, error);
+        setErrors((prev) => ({
+          ...prev,
+          [zodFieldName]: "An unexpected error occurred during validation.",
+        }));
+      }
+    }
+  };
+
   const handleChange = (e) => {
     const { id, value } = e.target;
-    setFormData({ ...formData, [id]: value });
+
+    // Restrict input based on field
+    if (id === "fullName" && !/^[a-zA-Z\s]*$/.test(value)) return; // Only letters and spaces
+    if (id === "phoneNumber" && !/^\d*$/.test(value)) return; // Only numbers
+    if (id === "nic" && !/^[0-9Vv]*$/.test(value)) return; // Only numbers and 'V' or 'v'
+
+    setFormData((prev) => ({ ...prev, [id]: value }));
+    setTouched((prev) => ({ ...prev, [id]: true }));
+    validateField(id, value);
+
+    // Clear backend errors for email, phoneNumber, or nic when the user modifies the field
+    if (id === "email" && errors.email?.includes("already in use")) {
+      setErrors((prev) => ({ ...prev, email: "" }));
+    }
+    if (id === "phoneNumber" && errors.phone?.includes("already in use")) {
+      setErrors((prev) => ({ ...prev, phone: "" }));
+    }
+    if (id === "nic" && errors.nic?.includes("already in use")) {
+      setErrors((prev) => ({ ...prev, nic: "" }));
+    }
   };
 
   const handleFileChange = (e) => {
@@ -77,39 +172,45 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
 
   const handleSkillsSelect = (skill) => {
     if (!formData.skills.includes(skill)) {
-      setFormData({ ...formData, skills: [...formData.skills, skill] });
+      const newSkills = [...formData.skills, skill];
+      setFormData((prev) => ({ ...prev, skills: newSkills }));
+      setTouched((prev) => ({ ...prev, skills: true }));
+      validateField("skills", newSkills);
     }
     setSkillsOpen(false);
   };
 
   const handleCertificationsSelect = (cert) => {
     if (!formData.certifications.includes(cert)) {
-      setFormData({ ...formData, certifications: [...formData.certifications, cert] });
+      const newCerts = [...formData.certifications, cert];
+      setFormData((prev) => ({ ...prev, certifications: newCerts }));
+      setTouched((prev) => ({ ...prev, certifications: true }));
+      validateField("certifications", newCerts);
     }
     setCertificationsOpen(false);
   };
 
   const removeSkill = (skill) => {
-    setFormData({
-      ...formData,
-      skills: formData.skills.filter((s) => s !== skill),
-    });
+    const newSkills = formData.skills.filter((s) => s !== skill);
+    setFormData((prev) => ({ ...prev, skills: newSkills }));
+    setTouched((prev) => ({ ...prev, skills: true }));
+    validateField("skills", newSkills);
   };
 
   const removeCertification = (cert) => {
-    setFormData({
-      ...formData,
-      certifications: formData.certifications.filter((c) => c !== cert),
-    });
+    const newCerts = formData.certifications.filter((c) => c !== cert);
+    setFormData((prev) => ({ ...prev, certifications: newCerts }));
+    setTouched((prev) => ({ ...prev, certifications: true }));
+    validateField("certifications", newCerts);
   };
 
   const handleAvailabilityChange = (day) => {
-    setFormData((prev) => {
-      const newAvailability = prev.weeklyAvailability.includes(day)
-        ? prev.weeklyAvailability.filter((d) => d !== day)
-        : [...prev.weeklyAvailability, day];
-      return { ...prev, weeklyAvailability: newAvailability };
-    });
+    const newAvailability = formData.weeklyAvailability.includes(day)
+      ? formData.weeklyAvailability.filter((d) => d !== day)
+      : [...formData.weeklyAvailability, day];
+    setFormData((prev) => ({ ...prev, weeklyAvailability: newAvailability }));
+    setTouched((prev) => ({ ...prev, weeklyAvailability: true }));
+    validateField("weeklyAvailability", newAvailability);
   };
 
   const handleSubmit = async (e) => {
@@ -123,12 +224,36 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
       address: formData.address,
       nic: formData.nic,
       specialization: formData.primarySpecialization,
-      hireDate: new Date(formData.hireDate),
+      hireDate: formData.hireDate,
       availability: formData.weeklyAvailability,
       skills: formData.skills,
       certifications: formData.certifications,
       notes: formData.additionalNotes,
     };
+
+    // Validate all fields on submission
+    Object.entries(validationData).forEach(([key, value]) => {
+      const fieldMap = {
+        name: "fullName",
+        email: "email",
+        phone: "phoneNumber",
+        address: "address",
+        nic: "nic",
+        specialization: "primarySpecialization",
+        hireDate: "hireDate",
+        availability: "weeklyAvailability",
+        skills: "skills",
+        certifications: "certifications",
+        notes: "additionalNotes",
+      };
+      const formFieldName = fieldMap[key] || key;
+      validateField(formFieldName, value);
+    });
+
+    // Mark all fields as touched to ensure errors are displayed
+    setTouched(
+      Object.keys(validationData).reduce((acc, key) => ({ ...acc, [key]: true }), {})
+    );
 
     try {
       formSchema.parse(validationData);
@@ -175,16 +300,43 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
         additionalNotes: "",
       });
       setProfilePicture(null);
-
+      setErrors({});
+      setTouched({});
       onClose();
     } catch (error) {
       if (error instanceof z.ZodError) {
+        const newErrors = {};
         error.errors.forEach((err) => {
-          toast.error(err.message);
+          newErrors[err.path[0]] = err.message;
         });
+        setErrors(newErrors);
+      } else if (error.response) {
+        // Handle backend errors (e.g., email, phoneNumber, or NIC already exists)
+        const { message } = error.response.data;
+        if (message === "Worker email already exists") {
+          setErrors((prev) => ({
+            ...prev,
+            email: "Email is already in use by another worker",
+          }));
+          toast.error("Email is already in use by another worker");
+        } else if (message === "Worker phone number already exists") {
+          setErrors((prev) => ({
+            ...prev,
+            phone: "Phone number is already in use by another worker",
+          }));
+          toast.error("Phone number is already in use by another worker");
+        } else if (message === "Worker NIC already exists") {
+          setErrors((prev) => ({
+            ...prev,
+            nic: "NIC is already in use by another worker",
+          }));
+          toast.error("NIC is already in use by another worker");
+        } else {
+          toast.error(message || "Failed to add worker.");
+        }
       } else {
         console.error("Error adding worker:", error);
-        toast.error(error.response?.data?.message || "Failed to add worker.");
+        toast.error("Failed to add worker.");
       }
     } finally {
       setLoading(false);
@@ -244,6 +396,7 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   value={formData.fullName}
                   onChange={handleChange}
                 />
+                {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name}</p>}
               </div>
 
               <div className="mb-4">
@@ -256,6 +409,7 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   value={formData.email}
                   onChange={handleChange}
                 />
+                {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email}</p>}
               </div>
 
               <div className="mb-4">
@@ -263,11 +417,12 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                 <input
                   type="text"
                   id="phoneNumber"
-                  placeholder="(555) 123-4567"
+                  placeholder="0711234567"
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.phoneNumber}
                   onChange={handleChange}
                 />
+                {errors.phone && <p className="text-red-400 text-sm mt-1">{errors.phone}</p>}
               </div>
 
               <div className="mb-4">
@@ -278,8 +433,8 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white h-24 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.address}
                   onChange={handleChange}
-                  required
                 />
+                {errors.address && <p className="text-red-400 text-sm mt-1">{errors.address}</p>}
               </div>
             </div>
 
@@ -290,11 +445,12 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                 <input
                   type="text"
                   id="nic"
-                  placeholder="123456789V"
+                  placeholder="612353921V or 200205602825"
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.nic}
                   onChange={handleChange}
                 />
+                {errors.nic && <p className="text-red-400 text-sm mt-1">{errors.nic}</p>}
               </div>
 
               <div className="mb-4">
@@ -312,6 +468,9 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   <option value="General Mechanic">General Mechanic</option>
                   <option value="Transmission Specialist">Transmission Specialist</option>
                 </select>
+                {errors.specialization && (
+                  <p className="text-red-400 text-sm mt-1">{errors.specialization}</p>
+                )}
               </div>
 
               <div className="mb-4">
@@ -354,6 +513,7 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                     </div>
                   )}
                 </div>
+                {errors.skills && <p className="text-red-400 text-sm mt-1">{errors.skills}</p>}
                 {formData.skills.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {formData.skills.map((skill) => (
@@ -444,10 +604,12 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                 <input
                   type="date"
                   id="hireDate"
+                  max="2025-03-27" // Prevents future dates in the UI
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.hireDate}
                   onChange={handleChange}
                 />
+                {errors.hireDate && <p className="text-red-400 text-sm mt-1">{errors.hireDate}</p>}
               </div>
 
               <div className="mb-4">
@@ -468,6 +630,9 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                     </div>
                   )
                 )}
+                {errors.availability && (
+                  <p className="text-red-400 text-sm mt-1">{errors.availability}</p>
+                )}
               </div>
 
               <div className="mb-4">
@@ -479,6 +644,7 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   value={formData.additionalNotes}
                   onChange={handleChange}
                 />
+                {errors.notes && <p className="text-red-400 text-sm mt-1">{errors.notes}</p>}
               </div>
             </div>
           </div>
