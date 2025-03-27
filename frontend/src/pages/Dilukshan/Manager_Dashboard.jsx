@@ -11,7 +11,6 @@ const Manager_Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Function to fetch appointments
   const fetchAppointments = async () => {
     try {
       const response = await fetch("http://localhost:5000/api/appointments/", {
@@ -32,14 +31,10 @@ const Manager_Dashboard = () => {
     }
   };
 
-  // Fetch appointments and workers on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch appointments
         await fetchAppointments();
-
-        // Fetch workers
         const workerResponse = await fetch("http://localhost:5000/api/workers/", {
           method: "GET",
           headers: {
@@ -53,7 +48,6 @@ const Manager_Dashboard = () => {
 
         const workerData = await workerResponse.json();
         setWorkers(workerData.data || []);
-
         setLoading(false);
       } catch (err) {
         setError(err.message);
@@ -64,7 +58,6 @@ const Manager_Dashboard = () => {
     fetchData();
   }, []);
 
-  // Filter appointments based on the active tab
   const filteredAppointments = appointments.filter((appointment) => {
     if (activeTab === "All") return true;
     if (activeTab === "Pending" && appointment.status === "Pending") return true;
@@ -91,14 +84,10 @@ const Manager_Dashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-white">
-      {/* Sidebar */}
       <div className="h-screen sticky top-0 bg-gray-900">
         <Sidebar />
       </div>
-
-      {/* Main Content */}
       <div className="flex-1 flex flex-col bg-gray-900 overflow-y-auto">
-        {/* Header */}
         <div className="p-6 bg-gray-900">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -107,8 +96,6 @@ const Manager_Dashboard = () => {
             </div>
           </div>
         </div>
-
-        {/* Tab Navigation */}
         <div className="px-6 pb-4 bg-gray-900">
           <div className="flex justify-around items-center border-b border-gray-700 bg-gray-800 rounded-t-lg p-1">
             {["All", "Pending", "In Progress", "Completed"].map((tab) => (
@@ -128,8 +115,6 @@ const Manager_Dashboard = () => {
             ))}
           </div>
         </div>
-
-        {/* Appointment Cards */}
         <div className="p-6 pt-0 bg-gray-900">
           {filteredAppointments.length === 0 ? (
             <p className="text-gray-400 text-center">No appointments found for {activeTab} status.</p>
@@ -142,14 +127,13 @@ const Manager_Dashboard = () => {
                   activeTab={activeTab}
                   workers={workers}
                   onWorkerAssigned={fetchAppointments}
+                  onWorkerUnassigned={fetchAppointments} // Added callback for unassign
                 />
               ))}
             </div>
           )}
         </div>
       </div>
-
-      {/* Toast Container */}
       <ToastContainer
         position="top-right"
         autoClose={5000}
