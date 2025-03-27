@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ClipLoader } from "react-spinners";
-import { FaUpload, FaCalendarAlt } from "react-icons/fa";
+import { FaUpload } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
@@ -12,12 +12,12 @@ const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
   phone: z.string().min(10, { message: "Please enter a valid phone number." }),
   address: z.string().min(5, { message: "Address must be at least 5 characters." }),
+  nic: z.string().min(10, { message: "NIC must be at least 10 characters." }), // Adjust length as needed
   specialization: z.string({ required_error: "Please select a specialization." }),
   hireDate: z.date({ required_error: "Please select a hire date." }),
   availability: z.array(z.string()).min(1, { message: "Select at least one day of availability." }),
   skills: z.array(z.string()).min(1, { message: "Select at least one skill." }),
   certifications: z.array(z.string()),
-  hourlyRate: z.string().min(1, { message: "Please enter an hourly rate." }),
   notes: z.string().optional(),
 });
 
@@ -31,17 +31,17 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
     email: "",
     phoneNumber: "",
     address: "",
+    nic: "",
     primarySpecialization: "",
     skills: [],
     certifications: [],
     hireDate: "",
     weeklyAvailability: [],
-    hourlyRate: "25",
     additionalNotes: "",
   });
 
   useEffect(() => {
-    const today = new Date("2025-03-17");
+    const today = new Date("2025-03-27"); // Updated to current date
     setFormData((prev) => ({
       ...prev,
       hireDate: today.toISOString().split("T")[0],
@@ -115,76 +115,70 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-  
-    // Map formData to match Zod schema
+
     const validationData = {
       name: formData.fullName,
       email: formData.email,
       phone: formData.phoneNumber,
       address: formData.address,
+      nic: formData.nic,
       specialization: formData.primarySpecialization,
       hireDate: new Date(formData.hireDate),
       availability: formData.weeklyAvailability,
       skills: formData.skills,
       certifications: formData.certifications,
-      hourlyRate: formData.hourlyRate,
       notes: formData.additionalNotes,
     };
-  
+
     try {
-      // Validate with Zod
       formSchema.parse(validationData);
-  
+
       const data = new FormData();
       data.append("fullName", formData.fullName);
       data.append("email", formData.email);
       data.append("phoneNumber", formData.phoneNumber);
       data.append("address", formData.address);
+      data.append("nic", formData.nic);
       data.append("primarySpecialization", formData.primarySpecialization);
       data.append("skills", JSON.stringify(formData.skills));
       data.append("certifications", JSON.stringify(formData.certifications));
       data.append("hireDate", formData.hireDate);
       data.append("weeklyAvailability", JSON.stringify(formData.weeklyAvailability));
-      data.append("hourlyRate", formData.hourlyRate);
       data.append("additionalNotes", formData.additionalNotes);
       if (profilePicture) {
         data.append("profilePicture", profilePicture);
       }
-  
+
       const response = await axios.post("http://localhost:5000/api/workers/add", data, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-  
-      // Pass the new worker data (plain object) to the parent component
+
       if (onAddWorker) {
-        onAddWorker(response.data.data); // Pass the new worker object, not the FormData
+        onAddWorker(response.data.data);
       }
-  
-      // Show success message
+
       toast.success("Worker added successfully!");
-  
-      // Reset form after successful submission
+
       setFormData({
         fullName: "",
         email: "",
         phoneNumber: "",
         address: "",
+        nic: "",
         primarySpecialization: "",
         skills: [],
         certifications: [],
         hireDate: "",
         weeklyAvailability: [],
-        hourlyRate: "25",
         additionalNotes: "",
       });
       setProfilePicture(null);
-  
+
       onClose();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        // Handle Zod validation errors
         error.errors.forEach((err) => {
           toast.error(err.message);
         });
@@ -249,7 +243,6 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.fullName}
                   onChange={handleChange}
-                  
                 />
               </div>
 
@@ -262,7 +255,6 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.email}
                   onChange={handleChange}
-                  
                 />
               </div>
 
@@ -275,7 +267,6 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.phoneNumber}
                   onChange={handleChange}
-                  
                 />
               </div>
 
@@ -294,6 +285,18 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
 
             {/* Middle Column */}
             <div className="w-full md:w-1/3 px-3 mb-6">
+              <div className="mb-4">
+                <label className="block text-gray-400 mb-2">NIC</label>
+                <input
+                  type="text"
+                  id="nic"
+                  placeholder="123456789V"
+                  className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  value={formData.nic}
+                  onChange={handleChange}
+                />
+              </div>
+
               <div className="mb-4">
                 <label className="block text-gray-400 mb-2">Primary Specialization</label>
                 <select
@@ -438,18 +441,13 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
             <div className="w-full md:w-1/3 px-3 mb-6">
               <div className="mb-4">
                 <label className="block text-gray-400 mb-2">Hire Date</label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    id="hireDate"
-                    className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                    value={formData.hireDate}
-                    onChange={handleChange}
-                  />
-                  <div className="absolute right-0 top-0 mt-2 mr-3">
-                   
-                  </div>
-                </div>
+                <input
+                  type="date"
+                  id="hireDate"
+                  className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  value={formData.hireDate}
+                  onChange={handleChange}
+                />
               </div>
 
               <div className="mb-4">
@@ -470,19 +468,6 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                     </div>
                   )
                 )}
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-gray-400 mb-2">Hourly Rate ($)</label>
-                <input
-                  type="number"
-                  id="hourlyRate"
-                  placeholder="25"
-                  className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                  value={formData.hourlyRate}
-                  onChange={handleChange}
-                  min="0"
-                />
               </div>
 
               <div className="mb-4">

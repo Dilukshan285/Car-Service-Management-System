@@ -22,6 +22,11 @@ const workerSchema = new Schema(
       type: String,
       required: true,
     },
+    nic: { // Added NIC field
+      type: String,
+      required: true,
+      unique: true, // Assuming NIC should be unique
+    },
     primarySpecialization: {
       type: String,
       required: true,
@@ -41,9 +46,6 @@ const workerSchema = new Schema(
     weeklyAvailability: {
       type: [String],
       default: [],
-    },
-    hourlyRate: {
-      type: Number,
     },
     additionalNotes: {
       type: String,
@@ -69,11 +71,11 @@ const workerSchema = new Schema(
     tasks: [
       {
         type: Schema.Types.ObjectId,
-        ref: "Appointment", // Reference to the Appointment model
+        ref: "Appointment",
       },
     ],
     lastLogin: {
-      type: Date, // Add lastLogin field to track login activity
+      type: Date,
     },
   },
   { timestamps: true }
