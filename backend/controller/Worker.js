@@ -68,6 +68,15 @@ const createWorker = async (req, res) => {
         });
       }
 
+      // Check for duplicate phone number
+      const existingWorkerByPhone = await Worker.findOne({ phoneNumber });
+      if (existingWorkerByPhone) {
+        return res.status(400).json({
+          success: false,
+          message: "Worker phone number already exists",
+        });
+      }
+
       let parsedSkills = [];
       let parsedCertifications = [];
       let parsedWeeklyAvailability = [];
@@ -236,7 +245,7 @@ const updateWorker = async (req, res) => {
         email,
         phoneNumber,
         address,
-        nic, // Added NIC
+        nic,
         primarySpecialization,
         skills,
         certifications,
@@ -247,12 +256,16 @@ const updateWorker = async (req, res) => {
         status,
       } = req.body;
 
+      // Normalize email to lowercase
+      const normalizedEmail = email ? email.toLowerCase() : email;
+
+      // Validate required fields
       if (
         !fullName ||
-        !email ||
+        !normalizedEmail ||
         !phoneNumber ||
         !address ||
-        !nic || // Added NIC to required fields
+        !nic ||
         !primarySpecialization ||
         !hireDate
       ) {
@@ -262,12 +275,21 @@ const updateWorker = async (req, res) => {
         });
       }
 
-      if (email) {
-        const existingWorker = await Worker.findOne({
-          email,
+      // Validate workerId format (MongoDB ObjectId)
+      if (!workerId.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid worker ID format",
+        });
+      }
+
+      // Check if email already exists for another worker
+      if (normalizedEmail) {
+        const existingWorkerByEmail = await Worker.findOne({
+          email: normalizedEmail,
           _id: { $ne: workerId },
         });
-        if (existingWorker) {
+        if (existingWorkerByEmail) {
           return res.status(400).json({
             success: false,
             message: "Email is already in use by another worker",
@@ -275,6 +297,21 @@ const updateWorker = async (req, res) => {
         }
       }
 
+      // Check if phoneNumber already exists for another worker
+      if (phoneNumber) {
+        const existingWorkerByPhone = await Worker.findOne({
+          phoneNumber,
+          _id: { $ne: workerId },
+        });
+        if (existingWorkerByPhone) {
+          return res.status(400).json({
+            success: false,
+            message: "Phone number is already in use by another worker",
+          });
+        }
+      }
+
+      // Check if NIC already exists for another worker
       if (nic) {
         const existingWorkerByNic = await Worker.findOne({
           nic,
@@ -288,10 +325,8 @@ const updateWorker = async (req, res) => {
         }
       }
 
+      // Parse skills
       let parsedSkills = [];
-      let parsedCertifications = [];
-      let parsedWeeklyAvailability = [];
-
       try {
         if (Array.isArray(skills)) {
           parsedSkills = skills;
@@ -307,6 +342,8 @@ const updateWorker = async (req, res) => {
         parsedSkills = [];
       }
 
+      // Parse certifications
+      let parsedCertifications = [];
       try {
         if (Array.isArray(certifications)) {
           parsedCertifications = certifications;
@@ -314,9 +351,7 @@ const updateWorker = async (req, res) => {
           if (certifications.startsWith("[") && certifications.endsWith("]")) {
             parsedCertifications = JSON.parse(certifications);
           } else {
-            parsedCertifications = certifications
-              .split(",")
-              .map((item) => item.trim());
+            parsedCertifications = certifications.split(",").map((item) => item.trim());
           }
         }
       } catch (error) {
@@ -324,6 +359,8 @@ const updateWorker = async (req, res) => {
         parsedCertifications = [];
       }
 
+      // Parse weeklyAvailability
+      let parsedWeeklyAvailability = [];
       const dayMapping = {
         Monday: "Mon",
         Tuesday: "Tue",
@@ -340,17 +377,13 @@ const updateWorker = async (req, res) => {
         saturday: "Sat",
         sunday: "Sun",
       };
-
       try {
         if (Array.isArray(weeklyAvailability)) {
           parsedWeeklyAvailability = weeklyAvailability.map(
             (day) => dayMapping[day.trim().toLowerCase()] || day
           );
         } else if (typeof weeklyAvailability === "string") {
-          if (
-            weeklyAvailability.startsWith("[") &&
-            weeklyAvailability.endsWith("]")
-          ) {
+          if (weeklyAvailability.startsWith("[") && weeklyAvailability.endsWith("]")) {
             parsedWeeklyAvailability = JSON.parse(weeklyAvailability).map(
               (day) => dayMapping[day.trim().toLowerCase()] || day
             );
@@ -365,6 +398,7 @@ const updateWorker = async (req, res) => {
         parsedWeeklyAvailability = [];
       }
 
+      // Process profile picture
       let profilePictureBase64;
       if (req.file) {
         try {
@@ -384,14 +418,15 @@ const updateWorker = async (req, res) => {
         }
       }
 
+      // Update the worker
       const updatedWorker = await Worker.findByIdAndUpdate(
         workerId,
         {
           fullName,
-          email,
+          email: normalizedEmail,
           phoneNumber,
           address,
-          nic, // Added NIC
+          nic,
           primarySpecialization,
           skills: parsedSkills,
           certifications: parsedCertifications,
