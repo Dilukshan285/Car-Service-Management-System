@@ -3,7 +3,7 @@ import Sidebar from '../../components/Dilukshan/Sidebar';
 import AddWorkerModal from "./AddWorkerModal";
 import UpdateWorkerModal from "./UpdateWorkerModal";
 import Worker_Details from "./Worker_Details";
-import DeleteConfirmationModal from "./DeleteConfirmationModal"; // Import the new modal
+import DeleteConfirmationModal from "./DeleteConfirmationModal";
 import axios from "axios";
 import { toast } from "react-toastify";
 
@@ -13,15 +13,14 @@ const Workers = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // State for delete modal
-  const [workerToDelete, setWorkerToDelete] = useState(null); // State for the worker to delete
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [workerToDelete, setWorkerToDelete] = useState(null);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [specializationFilter, setSpecializationFilter] = useState("All Specializations");
 
-  // Fetch workers from the API when the component mounts
   useEffect(() => {
     const fetchWorkers = async () => {
       try {
@@ -31,9 +30,7 @@ const Workers = () => {
           throw new Error(`Failed to fetch workers: ${response.status} ${response.statusText}`);
         }
         const data = await response.json();
-
         console.log("Fetched workers:", data);
-
         if (data && typeof data === "object" && Array.isArray(data.data)) {
           setWorkers(data.data);
         } else {
@@ -52,7 +49,6 @@ const Workers = () => {
         setLoading(false);
       }
     };
-
     fetchWorkers();
   }, []);
 
@@ -82,14 +78,12 @@ const Workers = () => {
   };
 
   const handleDeleteWorker = (worker) => {
-    // Open the delete confirmation modal and set the worker to delete
     setWorkerToDelete(worker);
     setIsDeleteModalOpen(true);
   };
 
   const confirmDeleteWorker = async () => {
     if (!workerToDelete) return;
-
     try {
       await axios.delete(`http://localhost:5000/api/workers/delete/${workerToDelete._id}`);
       toast.success("Worker deleted successfully");
@@ -98,7 +92,6 @@ const Workers = () => {
       console.error("Error deleting worker:", err);
       toast.error("Failed to delete worker. Please try again.");
     } finally {
-      // Close the modal and clear the worker to delete
       setIsDeleteModalOpen(false);
       setWorkerToDelete(null);
     }
@@ -118,7 +111,6 @@ const Workers = () => {
     return worker._id || worker.id || `worker-${index}`;
   };
 
-  // Filter workers based on search query and specialization
   const filteredWorkers = workers.filter((worker) => {
     const matchesSearch = worker.fullName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSpecialization =
@@ -131,7 +123,6 @@ const Workers = () => {
     <div className="flex h-screen bg-gray-950 text-white">
       <Sidebar />
       <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-900 to-gray-800">
-        {/* Header Section (Fixed) */}
         <div className="p-8">
           <div className="flex justify-between items-center mb-8">
             <div>
@@ -196,8 +187,6 @@ const Workers = () => {
               </button>
             </div>
           </div>
-
-          {/* View Mode Toggle and Worker Count */}
           <div className="flex justify-between items-center mb-6">
             <div className="flex space-x-2">
               <button
@@ -224,8 +213,6 @@ const Workers = () => {
             <p className="text-gray-300">Showing {filteredWorkers.length} workers</p>
           </div>
         </div>
-
-        {/* Worker List (Scrollable) */}
         <div className="flex-1 overflow-y-auto px-8 pb-8">
           {loading ? (
             <div className="flex justify-center items-center h-full">
@@ -527,7 +514,6 @@ const Workers = () => {
             </>
           )}
         </div>
-
         <AddWorkerModal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}

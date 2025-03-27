@@ -6,7 +6,6 @@ import { hashSync, compareSync } from "bcrypt";
 import sendMail from "../middleware/sendMail.js";
 import jwt from "jsonwebtoken";
 
-// Configure multer storage to store files in memory
 const storage = memoryStorage();
 const upload = multer({ storage }).single("profilePicture");
 
@@ -26,12 +25,12 @@ const createWorker = async (req, res) => {
         email,
         phoneNumber,
         address,
+        nic, // Added NIC
         primarySpecialization,
         skills,
         certifications,
         hireDate,
         weeklyAvailability,
-        hourlyRate,
         additionalNotes,
         workload,
         status,
@@ -42,9 +41,9 @@ const createWorker = async (req, res) => {
         !email ||
         !phoneNumber ||
         !address ||
+        !nic || // Added NIC to required fields
         !primarySpecialization ||
-        !hireDate ||
-        !hourlyRate
+        !hireDate
       ) {
         return res.status(400).json({
           success: false,
@@ -53,11 +52,19 @@ const createWorker = async (req, res) => {
       }
 
       const normalizedEmail = email.toLowerCase();
-      const existingWorker = await Worker.findOne({ email: normalizedEmail });
-      if (existingWorker) {
+      const existingWorkerByEmail = await Worker.findOne({ email: normalizedEmail });
+      if (existingWorkerByEmail) {
         return res.status(400).json({
           success: false,
           message: "Worker email already exists",
+        });
+      }
+
+      const existingWorkerByNic = await Worker.findOne({ nic }); // Check for duplicate NIC
+      if (existingWorkerByNic) {
+        return res.status(400).json({
+          success: false,
+          message: "Worker NIC already exists",
         });
       }
 
@@ -151,12 +158,12 @@ const createWorker = async (req, res) => {
         password: hashedPassword,
         phoneNumber,
         address,
+        nic, // Added NIC
         primarySpecialization,
         skills: parsedSkills,
         certifications: parsedCertifications,
         hireDate: new Date(hireDate),
         weeklyAvailability: parsedWeeklyAvailability,
-        hourlyRate: parseFloat(hourlyRate),
         additionalNotes: additionalNotes || "",
         workload: workload || 0,
         status: status || "available",
@@ -229,12 +236,12 @@ const updateWorker = async (req, res) => {
         email,
         phoneNumber,
         address,
+        nic, // Added NIC
         primarySpecialization,
         skills,
         certifications,
         hireDate,
         weeklyAvailability,
-        hourlyRate,
         additionalNotes,
         workload,
         status,
@@ -245,9 +252,9 @@ const updateWorker = async (req, res) => {
         !email ||
         !phoneNumber ||
         !address ||
+        !nic || // Added NIC to required fields
         !primarySpecialization ||
-        !hireDate ||
-        !hourlyRate
+        !hireDate
       ) {
         return res.status(400).json({
           success: false,
@@ -264,6 +271,19 @@ const updateWorker = async (req, res) => {
           return res.status(400).json({
             success: false,
             message: "Email is already in use by another worker",
+          });
+        }
+      }
+
+      if (nic) {
+        const existingWorkerByNic = await Worker.findOne({
+          nic,
+          _id: { $ne: workerId },
+        });
+        if (existingWorkerByNic) {
+          return res.status(400).json({
+            success: false,
+            message: "NIC is already in use by another worker",
           });
         }
       }
@@ -371,12 +391,12 @@ const updateWorker = async (req, res) => {
           email,
           phoneNumber,
           address,
+          nic, // Added NIC
           primarySpecialization,
           skills: parsedSkills,
           certifications: parsedCertifications,
           hireDate: hireDate ? new Date(hireDate) : undefined,
           weeklyAvailability: parsedWeeklyAvailability,
-          hourlyRate: hourlyRate ? parseFloat(hourlyRate) : undefined,
           additionalNotes,
           workload,
           status,
@@ -453,7 +473,7 @@ const loginWorker = async (req, res) => {
     const worker = await Worker.findOne({ email: normalizedEmail }).populate({
       path: "tasks",
       select: "make model year carNumberPlate mileage serviceType appointmentDate appointmentTime notes user status",
-    }); // Populate all relevant appointment fields
+    });
 
     if (!worker) {
       return res.status(404).json({
@@ -489,7 +509,7 @@ const loginWorker = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Worker logged in successfully",
-      data: workerData, // Includes populated tasks with all appointment details
+      data: workerData,
     });
   } catch (error) {
     console.error("Worker Login Error:", error);
@@ -500,10 +520,11 @@ const loginWorker = async (req, res) => {
   }
 };
 
+// Get current schedule
 const getCurrentSchedule = async (req, res) => {
   try {
     const workerId = req.user?.id;
-    
+
     if (!workerId) {
       return res.status(401).json({
         success: false,
@@ -514,9 +535,9 @@ const getCurrentSchedule = async (req, res) => {
     const worker = await Worker.findById(workerId).populate({
       path: "tasks",
       select: "make model year carNumberPlate mileage serviceType appointmentDate appointmentTime notes user status",
-      match: { 
-        appointmentDate: { $gte: new Date() }, // Only future and current appointments
-        status: { $ne: "Cancelled" } // Exclude cancelled appointments
+      match: {
+        appointmentDate: { $gte: new Date() },
+        status: { $ne: "Cancelled" },
       },
       options: { sort: { appointmentDate: 1, appointmentTime: 1 } },
     });
@@ -528,8 +549,7 @@ const getCurrentSchedule = async (req, res) => {
       });
     }
 
-    // Format the schedule data with all appointment details
-    const schedule = worker.tasks.map(task => ({
+    const schedule = worker.tasks.map((task) => ({
       id: task._id,
       make: task.make,
       model: task.model,
@@ -542,7 +562,7 @@ const getCurrentSchedule = async (req, res) => {
       notes: task.notes || "",
       user: task.user,
       status: task.status,
-      fullDateTime: task.appointmentDateTime, // Using the virtual field from Appointment model
+      fullDateTime: task.appointmentDateTime,
     }));
 
     res.status(200).json({
@@ -566,27 +586,25 @@ const getCurrentSchedule = async (req, res) => {
   }
 };
 
+// Sign out worker
 const signoutWorker = async (req, res) => {
   try {
-    // Clear the access token cookie
-    res.clearCookie('access_token', {
+    res.clearCookie("access_token", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production'
+      secure: process.env.NODE_ENV === "production",
     });
 
     res.status(200).json({
       success: true,
-      message: 'Worker logged out successfully'
+      message: "Worker logged out successfully",
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
-
-
 
 export default {
   createWorker,
@@ -595,5 +613,5 @@ export default {
   deleteWorker,
   loginWorker,
   getCurrentSchedule,
-  signoutWorker
+  signoutWorker,
 };
