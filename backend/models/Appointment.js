@@ -22,7 +22,7 @@ const appointmentSchema = new Schema(
       type: String,
       required: [true, "Car number plate is required"],
       trim: true,
-      uppercase: true, // No unique: true
+      uppercase: true,
     },
     mileage: {
       type: Number,
@@ -76,7 +76,11 @@ const appointmentSchema = new Schema(
     status: {
       type: String,
       enum: ["Pending", "Confirmed", "In Progress", "Completed", "Cancelled"],
-      default: "Confirmed"
+      default: "Confirmed",
+    },
+    isAcceptedByWorker: {
+      type: Boolean,
+      default: false, // New field to track if the worker has accepted the service
     },
   },
   { timestamps: true }

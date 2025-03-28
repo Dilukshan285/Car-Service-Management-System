@@ -11,5 +11,6 @@ router.put("/update/:appointmentId", AppointmentController.updateAppointment);
 router.delete("/delete/:appointmentId", AppointmentController.deleteAppointment);
 router.put("/assign-worker/:appointmentId", AppointmentController.assignWorkerToAppointment);
 router.put("/unassign-worker/:appointmentId", AppointmentController.unassignWorkerFromAppointment);
+router.put("/accept-service/:appointmentId", verifyToken, AppointmentController.acceptService);
 
 export default router;

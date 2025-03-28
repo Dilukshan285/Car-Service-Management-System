@@ -25,7 +25,7 @@ const createWorker = async (req, res) => {
         email,
         phoneNumber,
         address,
-        nic, // Added NIC
+        nic,
         primarySpecialization,
         skills,
         certifications,
@@ -41,7 +41,7 @@ const createWorker = async (req, res) => {
         !email ||
         !phoneNumber ||
         !address ||
-        !nic || // Added NIC to required fields
+        !nic ||
         !primarySpecialization ||
         !hireDate
       ) {
@@ -60,7 +60,7 @@ const createWorker = async (req, res) => {
         });
       }
 
-      const existingWorkerByNic = await Worker.findOne({ nic }); // Check for duplicate NIC
+      const existingWorkerByNic = await Worker.findOne({ nic });
       if (existingWorkerByNic) {
         return res.status(400).json({
           success: false,
@@ -68,7 +68,6 @@ const createWorker = async (req, res) => {
         });
       }
 
-      // Check for duplicate phone number
       const existingWorkerByPhone = await Worker.findOne({ phoneNumber });
       if (existingWorkerByPhone) {
         return res.status(400).json({
@@ -167,7 +166,7 @@ const createWorker = async (req, res) => {
         password: hashedPassword,
         phoneNumber,
         address,
-        nic, // Added NIC
+        nic,
         primarySpecialization,
         skills: parsedSkills,
         certifications: parsedCertifications,
@@ -256,10 +255,8 @@ const updateWorker = async (req, res) => {
         status,
       } = req.body;
 
-      // Normalize email to lowercase
       const normalizedEmail = email ? email.toLowerCase() : email;
 
-      // Validate required fields
       if (
         !fullName ||
         !normalizedEmail ||
@@ -275,7 +272,6 @@ const updateWorker = async (req, res) => {
         });
       }
 
-      // Validate workerId format (MongoDB ObjectId)
       if (!workerId.match(/^[0-9a-fA-F]{24}$/)) {
         return res.status(400).json({
           success: false,
@@ -283,7 +279,6 @@ const updateWorker = async (req, res) => {
         });
       }
 
-      // Check if email already exists for another worker
       if (normalizedEmail) {
         const existingWorkerByEmail = await Worker.findOne({
           email: normalizedEmail,
@@ -297,7 +292,6 @@ const updateWorker = async (req, res) => {
         }
       }
 
-      // Check if phoneNumber already exists for another worker
       if (phoneNumber) {
         const existingWorkerByPhone = await Worker.findOne({
           phoneNumber,
@@ -311,7 +305,6 @@ const updateWorker = async (req, res) => {
         }
       }
 
-      // Check if NIC already exists for another worker
       if (nic) {
         const existingWorkerByNic = await Worker.findOne({
           nic,
@@ -325,7 +318,6 @@ const updateWorker = async (req, res) => {
         }
       }
 
-      // Parse skills
       let parsedSkills = [];
       try {
         if (Array.isArray(skills)) {
@@ -342,7 +334,6 @@ const updateWorker = async (req, res) => {
         parsedSkills = [];
       }
 
-      // Parse certifications
       let parsedCertifications = [];
       try {
         if (Array.isArray(certifications)) {
@@ -359,7 +350,6 @@ const updateWorker = async (req, res) => {
         parsedCertifications = [];
       }
 
-      // Parse weeklyAvailability
       let parsedWeeklyAvailability = [];
       const dayMapping = {
         Monday: "Mon",
@@ -398,7 +388,6 @@ const updateWorker = async (req, res) => {
         parsedWeeklyAvailability = [];
       }
 
-      // Process profile picture
       let profilePictureBase64;
       if (req.file) {
         try {
@@ -418,7 +407,6 @@ const updateWorker = async (req, res) => {
         }
       }
 
-      // Update the worker
       const updatedWorker = await Worker.findByIdAndUpdate(
         workerId,
         {
@@ -569,7 +557,7 @@ const getCurrentSchedule = async (req, res) => {
 
     const worker = await Worker.findById(workerId).populate({
       path: "tasks",
-      select: "make model year carNumberPlate mileage serviceType appointmentDate appointmentTime notes user status",
+      select: "make model year carNumberPlate mileage serviceType appointmentDate appointmentTime notes user status isAcceptedByWorker",
       match: {
         appointmentDate: { $gte: new Date() },
         status: { $ne: "Cancelled" },
@@ -585,7 +573,7 @@ const getCurrentSchedule = async (req, res) => {
     }
 
     const schedule = worker.tasks.map((task) => ({
-      id: task._id,
+      id: task._id.toString(),
       make: task.make,
       model: task.model,
       year: task.year,
@@ -598,6 +586,7 @@ const getCurrentSchedule = async (req, res) => {
       user: task.user,
       status: task.status,
       fullDateTime: task.appointmentDateTime,
+      isAcceptedByWorker: task.isAcceptedByWorker || false,
     }));
 
     res.status(200).json({

@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useSelector } from "react-redux"; // Added useSelector
-import { CalendarIcon, Clock, Upload } from "lucide-react";
+import { useSelector } from "react-redux";
+import { CalendarIcon, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { jsPDF } from "jspdf";
-import { toast } from "react-toastify";
 
 const BookingForm = () => {
   const navigate = useNavigate();
-  const { currentUser } = useSelector((state) => state.user); // Get user from Redux store
+  const { currentUser } = useSelector((state) => state.user);
   const [formData, setFormData] = useState({
     make: "",
     model: "",
@@ -25,11 +24,10 @@ const BookingForm = () => {
   const [loading, setLoading] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
+  // Redirect if user is not authenticated
   useEffect(() => {
-    // Check if user is authenticated via Redux store
     if (!currentUser) {
       console.log("No user in Redux store, redirecting to sign-in");
-      toast.error("You must be logged in to book an appointment.");
       navigate("/sign-in");
     } else {
       console.log("User authenticated via Redux:", currentUser);
@@ -62,15 +60,15 @@ const BookingForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Double-check authentication before proceeding
     if (!currentUser) {
-      console.log("No user in Redux store during submit, redirecting to sign-in");
-      toast.error("You must be logged in to book an appointment.");
       navigate("/sign-in");
       return;
     }
 
     setLoading(true);
-    const token = localStorage.getItem("access_token"); // Fallback to localStorage
+    const token = localStorage.getItem("access_token");
     console.log("Token for booking:", token);
 
     try {
@@ -93,20 +91,23 @@ const BookingForm = () => {
       console.log("Booking response:", data);
 
       if (response.ok && data.success) {
-        toast.success("Appointment booked successfully! We'll contact you to confirm.");
         navigate("/");
       } else {
         throw new Error(data.message || "Failed to book appointment");
       }
     } catch (error) {
       console.error("Booking error:", error);
-      toast.error(error.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDownloadPDF = () => {
+    if (!currentUser) {
+      navigate("/sign-in");
+      return;
+    }
+
     const doc = new jsPDF();
     doc.setFontSize(18);
     doc.text("Car Service Appointment Receipt", 20, 20);
@@ -145,7 +146,7 @@ const BookingForm = () => {
   ];
 
   if (!currentUser) {
-    return null; // Render nothing while redirecting
+    return null;
   }
 
   return (

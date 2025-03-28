@@ -14,10 +14,8 @@ const createAppointment = async (req, res) => {
   try {
     const { make, model, year, carNumberPlate, mileage, serviceType, appointmentDate, appointmentTime, notes } = req.body;
 
-    // Log the request body for debugging
     console.log("Request Body:", req.body);
 
-    // Validate required fields
     if (!make || !model || !year || !carNumberPlate || !mileage || !serviceType || !appointmentDate || !appointmentTime) {
       return res.status(400).json({
         success: false,
@@ -25,7 +23,6 @@ const createAppointment = async (req, res) => {
       });
     }
 
-    // Ensure the user is authenticated (set by verifyToken)
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
@@ -33,7 +30,6 @@ const createAppointment = async (req, res) => {
       });
     }
 
-    // Fetch user
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({
@@ -44,7 +40,6 @@ const createAppointment = async (req, res) => {
 
     const userName = `${user.first_name} ${user.last_name}`;
 
-    // Parse and validate appointmentDate
     const parsedDate = new Date(appointmentDate);
     if (isNaN(parsedDate.getTime())) {
       return res.status(400).json({
@@ -54,7 +49,6 @@ const createAppointment = async (req, res) => {
     }
     parsedDate.setHours(0, 0, 0, 0);
 
-    // Validate appointmentTime format (HH:MM)
     if (!/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(appointmentTime)) {
       return res.status(400).json({
         success: false,
@@ -62,7 +56,6 @@ const createAppointment = async (req, res) => {
       });
     }
 
-    // Check for existing appointment with same carNumberPlate at the same date and time
     const existingAppointment = await Appointment.findOne({
       carNumberPlate,
       appointmentDate: parsedDate,
@@ -87,6 +80,7 @@ const createAppointment = async (req, res) => {
       appointmentTime,
       notes: notes || "",
       user: userName,
+      isAcceptedByWorker: false, // Initialize as false
     });
 
     const savedAppointment = await newAppointment.save();
@@ -126,7 +120,7 @@ const getAppointments = async (req, res) => {
 const updateAppointment = async (req, res) => {
   try {
     const { appointmentId } = req.params;
-    const { make, model, year, carNumberPlate, mileage, serviceType, appointmentDate, appointmentTime, notes } = req.body;
+    const { make, model, year, carNumberPlate, mileage, serviceType, appointmentDate, appointmentTime, notes, status, isAcceptedByWorker } = req.body;
 
     if (!appointmentId.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({
@@ -178,6 +172,8 @@ const updateAppointment = async (req, res) => {
         appointmentDate: newDate,
         appointmentTime: newTime,
         notes: notes !== undefined ? notes : existingAppointment.notes,
+        status: status || existingAppointment.status,
+        isAcceptedByWorker: isAcceptedByWorker !== undefined ? isAcceptedByWorker : existingAppointment.isAcceptedByWorker,
       },
       { new: true, runValidators: true }
     );
@@ -281,6 +277,7 @@ const assignWorkerToAppointment = async (req, res) => {
 
     appointment.worker = worker._id;
     appointment.status = "In Progress";
+    appointment.isAcceptedByWorker = false; // Ensure this is false until the worker accepts
     const updatedAppointment = await appointment.save();
 
     if (!worker.tasks.includes(appointmentId)) {
@@ -337,6 +334,8 @@ const unassignWorkerFromAppointment = async (req, res) => {
     }
 
     appointment.worker = null;
+    appointment.isAcceptedByWorker = false; // Reset on unassign
+    appointment.status = "Confirmed"; // Reset status to Confirmed
     await appointment.save();
 
     const worker = await Worker.findById(workerId);
@@ -360,12 +359,69 @@ const unassignWorkerFromAppointment = async (req, res) => {
   }
 };
 
+// New function to handle accepting a service
+const acceptService = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+
+    if (!appointmentId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid appointment ID format",
+      });
+    }
+
+    const appointment = await Appointment.findById(appointmentId);
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
+    // Ensure a worker is assigned
+    if (!appointment.worker) {
+      return res.status(400).json({
+        success: false,
+        message: "No worker assigned to this appointment",
+      });
+    }
+
+    // Ensure the authenticated worker is the one assigned to the appointment
+    const workerId = req.user?.id;
+    if (!workerId || appointment.worker.toString() !== workerId) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized: You are not assigned to this appointment",
+      });
+    }
+
+    // Update the appointment
+    appointment.isAcceptedByWorker = true;
+    appointment.status = "In Progress";
+    const updatedAppointment = await appointment.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Service accepted successfully",
+      data: updatedAppointment,
+    });
+  } catch (error) {
+    console.error("Error in acceptService:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export default {
-  checkAuth, // Added checkAuth to exports
+  checkAuth,
   createAppointment,
   getAppointments,
   updateAppointment,
   deleteAppointment,
   assignWorkerToAppointment,
   unassignWorkerFromAppointment,
+  acceptService, // Export the new function
 };

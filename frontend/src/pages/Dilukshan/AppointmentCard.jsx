@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 
 const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned, onWorkerUnassigned }) => {
   const [isAssigning, setIsAssigning] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState(appointment.worker?._id || "");
   const [localAppointment, setLocalAppointment] = useState(appointment);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setLocalAppointment(appointment);
@@ -16,6 +18,8 @@ const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned, on
     switch (localAppointment.status) {
       case "Pending":
         return "bg-yellow-200 text-yellow-800";
+      case "Confirmed":
+        return "bg-gray-200 text-gray-800";
       case "In Progress":
         return "bg-blue-200 text-blue-800";
       case "Completed":
@@ -34,7 +38,6 @@ const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned, on
     }
 
     setLoading(true);
-
     try {
       const response = await fetch(
         `http://localhost:5000/api/appointments/assign-worker/${localAppointment._id}`,
@@ -62,6 +65,7 @@ const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned, on
             fullName: selectedWorkerData.fullName,
           },
           status: updatedAppointment.data.status || "In Progress",
+          isAcceptedByWorker: updatedAppointment.data.isAcceptedByWorker || false,
         }));
       }
 
@@ -78,12 +82,11 @@ const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned, on
 
   const handleUnassignWorker = async () => {
     setLoading(true);
-
     try {
       const response = await fetch(
         `http://localhost:5000/api/appointments/unassign-worker/${localAppointment._id}`,
         {
-          method: "PUT", // Assuming the endpoint uses PUT; adjust if it's different
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
@@ -99,7 +102,8 @@ const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned, on
       setLocalAppointment((prev) => ({
         ...prev,
         worker: null,
-        status: updatedAppointment.data.status || "Pending", // Adjust status as needed
+        status: updatedAppointment.data.status || "Confirmed",
+        isAcceptedByWorker: false,
       }));
 
       toast.success("Worker unassigned successfully!");
@@ -110,6 +114,12 @@ const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned, on
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleViewProgress = () => {
+    navigate(`/service-details/${localAppointment.carNumberPlate}`, {
+      state: { ...localAppointment, readOnly: true }, // Pass readOnly flag
+    });
   };
 
   return (
@@ -188,6 +198,14 @@ const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned, on
           >
             {loading ? "Unassigning..." : "Unassign Worker"}
           </button>
+          {localAppointment.isAcceptedByWorker && (
+            <button
+              className="mt-2 w-full bg-blue-600 text-white rounded-lg py-2 px-4 hover:bg-blue-500"
+              onClick={handleViewProgress}
+            >
+              View Progress
+            </button>
+          )}
         </div>
       ) : (
         <div>
