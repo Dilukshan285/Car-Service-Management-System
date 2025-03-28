@@ -1,33 +1,104 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
 
 const CartPage = () => {
   const navigate = useNavigate();
-  const [cart, setCart] = useState([
-    {
-      id: 1,
-      name: 'Performance Brake Pads',
-      price: 89.99,
-      quantity: 1,
-      image: 'https://via.placeholder.com/150',
-    },
-    {
-      id: 3,
-      name: 'Car Battery',
-      price: 129.99,
-      quantity: 1,
-      image: 'https://via.placeholder.com/150',
-    },
-  ]);
+  const { currentUser } = useSelector((state) => state.user);
+  const [cart, setCart] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const handleRemoveFromCart = (productId) => {
-    setCart(cart.filter(item => item.id !== productId)); // Remove item from cart
+  useEffect(() => {
+    if (!currentUser) navigate("/sign-in");
+  }, [currentUser, navigate]);
+
+  useEffect(() => {
+    const fetchCart = async () => {
+      if (!currentUser) return;
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem("access_token");
+      try {
+        const response = await fetch("http://localhost:5000/api/cart", {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+          credentials: "include",
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        if (data.success) {
+          setCart(data.data.cartItems.map(item => ({
+            id: item.productId,
+            name: item.product.name,
+            price: item.product.price,
+            quantity: item.quantity,
+            image: item.product.images || "https://via.placeholder.com/150",
+          })));
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCart();
+  }, [currentUser]);
+
+  const handleRemoveFromCart = async (productId) => {
+    const token = localStorage.getItem("access_token");
+    try {
+      const response = await fetch("http://localhost:5000/api/cart/remove", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify({ productId }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Failed to remove item");
+      if (data.success) {
+        setCart(cart.filter(item => item.id !== productId));
+        toast.success("Item removed from cart!");
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to remove item");
+    }
   };
 
-  const handleQuantityChange = (productId, change) => {
-    setCart(cart.map(item => 
-      item.id === productId ? { ...item, quantity: item.quantity + change } : item
-    ));
+  const handleQuantityChange = async (productId, change) => {
+    const item = cart.find(i => i.id === productId);
+    const newQuantity = item.quantity + change;
+    if (newQuantity < 1) {
+      handleRemoveFromCart(productId);
+      return;
+    }
+    const token = localStorage.getItem("access_token");
+    try {
+      const response = await fetch("http://localhost:5000/api/cart/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify({ productId, quantity: newQuantity }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Failed to update cart");
+      if (data.success) {
+        setCart(cart.map(item =>
+          item.id === productId ? { ...item, quantity: newQuantity } : item
+        ));
+        toast.success("Cart updated!");
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to update cart");
+    }
   };
 
   const calculateSubtotal = () => {
@@ -35,8 +106,17 @@ const CartPage = () => {
   };
 
   const handleProceedToCheckout = () => {
-    navigate('/checkout'); // Navigate to the Checkout page
+    // Pass cart items to CheckoutPage via navigation state
+    navigate('/checkout', { state: { cartItems: cart } });
   };
+
+  if (!currentUser) return null;
+  if (loading) return <div className="bg-gray-100 min-h-screen p-6"><p>Loading cart...</p></div>;
+  if (error) return (
+    <div className="bg-gray-100 min-h-screen p-6">
+      <p className="text-red-600">Error: {error}</p>
+    </div>
+  );
 
   return (
     <div className="bg-gray-100 min-h-screen p-6">

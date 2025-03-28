@@ -5,7 +5,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { MapPin, Phone, Mail, Clock } from "lucide-react"; // Added lucide-react icons
 
 
-
 const Home = () => {
   // State for contact form
   const [formData, setFormData] = useState({
