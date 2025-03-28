@@ -23,8 +23,8 @@ const schema = new Schema(
       type: Number,
     },
     mobile: {
-      type: String, // Changed to String to handle various formats
-      sparse: true, // Still allows multiple documents without a mobile field
+      type: String,
+      sparse: true,
     },
     address: {
       type: String,
@@ -40,8 +40,7 @@ const schema = new Schema(
     },
     avatar: {
       type: String,
-      default:
-        "https://tse2.mm.bing.net/th?id=OIP.eCrcK2BiqwBGE1naWwK3UwHaHa&pid=Api&P=0&h=180",
+      default: "https://tse2.mm.bing.net/th?id=OIP.eCrcK2BiqwBGE1naWwK3UwHaHa&pid=Api&P=0&h=180",
     },
     role: {
       type: String,
@@ -55,9 +54,10 @@ const schema = new Schema(
     lastLogin: {
       type: Date,
     },
-    cartData: {
-      type: Object,
-      default: {},
+    cartData: {  // Removed duplicate field
+      type: Map,
+      of: Number,
+      default: new Map()
     },
   },
   { timestamps: true, minimize: false }

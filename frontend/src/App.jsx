@@ -44,6 +44,7 @@ import CheckoutPage from './pages/Raagul/CheckoutPage.jsx';
 import PaymentPage from './pages/Raagul/PaymentPage.jsx';
 import OrderManagementPage from './pages/Raagul/OrderManagementPage.jsx';
 import ReviewManagementPage from './pages/Raagul/ReviewManagementPage.jsx';
+import OrderDetailPage from './pages/Raagul/OrderDetailPage.jsx';
 
 function AppWrapper() {
   const location = useLocation();
@@ -92,6 +93,7 @@ function AppWrapper() {
           <Route path="/accessories" element={<ProductPage />} />
           <Route path="/ProductDetails/:id" element={<ProductDetail />} />
           <Route path="/myorders" element={<MyOrdersPage />} />
+          <Route path="/OrderDetail/:id" element={<OrderDetailPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/payment" element={<PaymentPage />} />

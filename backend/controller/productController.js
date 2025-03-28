@@ -1,5 +1,6 @@
 import Product from '../models/Product.js';
 import sharp from 'sharp';
+import User from '../models/Usermodel.js';
 
 // Add new product
 export const addProduct = async (req, res) => {
@@ -197,5 +198,264 @@ export const deleteProduct = async (req, res) => {
     res.status(200).json({ success: true, message: 'Product deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const addToCart = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+    }
+
+    const userId = req.user.id || req.user._id;
+    const { productId, quantity = 1 } = req.body;
+
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID is required",
+      });
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    if (product.stock < quantity) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient stock",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Convert cartData to Map if it's not already
+    if (!(user.cartData instanceof Map)) {
+      user.cartData = new Map(Object.entries(user.cartData || {}));
+    }
+
+    const currentQuantity = user.cartData.get(productId) || 0;
+    user.cartData.set(productId, currentQuantity + quantity);
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Product added to cart",
+      data: Object.fromEntries(user.cartData)
+    });
+  } catch (error) {
+    console.error("Error adding to cart:", error.stack);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getCart = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+    }
+
+    const userId = req.user.id || req.user._id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const cartData = user.cartData instanceof Map 
+      ? Object.fromEntries(user.cartData) 
+      : user.cartData || {};
+
+    const cartItems = await Promise.all(
+      Object.entries(cartData).map(async ([productId, quantity]) => {
+        const product = await Product.findById(productId);
+        return {
+          productId,
+          quantity,
+          product: product
+            ? {
+                name: product.name,
+                price: product.price,
+                images: product.images,
+                stock: product.stock,
+              }
+            : null,
+        };
+      })
+    );
+
+    const validCartItems = cartItems.filter((item) => item.product !== null);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        cartItems: validCartItems,
+        totalItems: validCartItems.reduce((sum, item) => sum + item.quantity, 0),
+        totalPrice: validCartItems.reduce(
+          (sum, item) => sum + (item.product ? item.product.price * item.quantity : 0),
+          0
+        ),
+      },
+    });
+  } catch (error) {
+    console.error("Error getting cart:", error.stack);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const updateCartItem = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+    }
+
+    const userId = req.user.id || req.user._id;
+    const { productId, quantity } = req.body;
+
+    if (!productId || quantity === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID and quantity are required",
+      });
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    if (quantity > product.stock) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient stock",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (!(user.cartData instanceof Map)) {
+      user.cartData = new Map(Object.entries(user.cartData || {}));
+    }
+
+    if (!user.cartData.has(productId)) {
+      return res.status(404).json({
+        success: false,
+        message: "Item not found in cart",
+      });
+    }
+
+    if (quantity <= 0) {
+      user.cartData.delete(productId);
+    } else {
+      user.cartData.set(productId, quantity);
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Cart updated",
+      data: Object.fromEntries(user.cartData)
+    });
+  } catch (error) {
+    console.error("Error updating cart:", error.stack);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const removeCartItem = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+    }
+
+    const userId = req.user.id || req.user._id;
+    const { productId } = req.body;
+
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID is required",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (!(user.cartData instanceof Map)) {
+      user.cartData = new Map(Object.entries(user.cartData || {}));
+    }
+
+    if (!user.cartData.has(productId)) {
+      return res.status(404).json({
+        success: false,
+        message: "Item not found in cart",
+      });
+    }
+
+    user.cartData.delete(productId);
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Item removed from cart",
+      data: Object.fromEntries(user.cartData)
+    });
+  } catch (error) {
+    console.error("Error removing item from cart:", error.stack);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };

@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const PaymentPage = () => {
   const navigate = useNavigate();
-  const [paymentMethod, setPaymentMethod] = useState('creditCard');
+  const location = useLocation(); // To access navigation state
+  const [paymentMethod, setPaymentMethod] = useState("creditCard");
   const [cardDetails, setCardDetails] = useState({
-    cardNumber: '',
-    expiryDate: '',
-    cvc: '',
+    cardNumber: "",
+    expiryDate: "",
+    cvc: "",
   });
   const [isOrderSuccess, setIsOrderSuccess] = useState(false); // State for success message
+
+  // Retrieve data passed from CheckoutPage
+  const { cartItems = [], shippingInfo = {}, subtotal = "0.00", shipping = "0.00", tax = "0.00", total = "0.00" } =
+    location.state || {};
 
   const handleCardDetailsChange = (e) => {
     const { name, value } = e.target;
@@ -19,15 +25,68 @@ const PaymentPage = () => {
     }));
   };
 
-  const handlePaymentSubmit = (e) => {
+  const handlePaymentSubmit = async (e) => {
     e.preventDefault();
-    // Simulate order success
-    setIsOrderSuccess(true); // Set success state to true
 
-    // Redirect to My Orders page after a delay
-    setTimeout(() => {
-      navigate('/myorders');
-    }, 2000); // Redirect after 2 seconds to show the success message
+    try {
+      // Validate card details if payment method is credit card
+      if (paymentMethod === "creditCard") {
+        if (!cardDetails.cardNumber || !cardDetails.expiryDate || !cardDetails.cvc) {
+          toast.error("Please fill in all card details");
+          return;
+        }
+      }
+
+      // Prepare order data
+      const orderData = {
+        items: cartItems.map((item) => ({
+          productId: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+        })),
+        shippingInfo,
+        paymentInfo: {
+          paymentMethod,
+          cardDetails: paymentMethod === "creditCard" ? cardDetails : undefined,
+        },
+        totals: {
+          subtotal: parseFloat(subtotal),
+          shipping: parseFloat(shipping),
+          tax: parseFloat(tax),
+          total: parseFloat(total),
+        },
+      };
+
+      // Send order data to the backend
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("http://localhost:5000/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create order");
+      }
+
+      // Order created successfully
+      setIsOrderSuccess(true);
+
+      // Redirect to My Orders page after a delay
+      setTimeout(() => {
+        navigate("/myorders");
+      }, 2000); // Redirect after 2 seconds to show the success message
+    } catch (err) {
+      console.error("Error creating order:", err);
+      toast.error(err.message || "Failed to place order. Please try again.");
+    }
   };
 
   return (
@@ -35,7 +94,7 @@ const PaymentPage = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <button
-          onClick={() => navigate('/checkout')} // Navigate back to the Checkout page
+          onClick={() => navigate("/checkout")} // Navigate back to the Checkout page
           className="text-blue-600"
         >
           &lt; Back to Shipping
@@ -58,7 +117,7 @@ const PaymentPage = () => {
                     type="radio"
                     name="paymentMethod"
                     value="creditCard"
-                    checked={paymentMethod === 'creditCard'}
+                    checked={paymentMethod === "creditCard"}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     className="mr-2"
                   />
@@ -69,7 +128,7 @@ const PaymentPage = () => {
                     type="radio"
                     name="paymentMethod"
                     value="paypal"
-                    checked={paymentMethod === 'paypal'}
+                    checked={paymentMethod === "paypal"}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     className="mr-2"
                   />
@@ -79,7 +138,7 @@ const PaymentPage = () => {
             </div>
 
             {/* Credit Card Details */}
-            {paymentMethod === 'creditCard' && (
+            {paymentMethod === "creditCard" && (
               <div className="mb-4">
                 <label className="block text-sm font-semibold mb-2">Card Number</label>
                 <input
@@ -89,12 +148,13 @@ const PaymentPage = () => {
                   onChange={handleCardDetailsChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   placeholder="1234 5678 9012 3456"
+                  required
                 />
               </div>
             )}
 
             {/* Expiry and CVC */}
-            {paymentMethod === 'creditCard' && (
+            {paymentMethod === "creditCard" && (
               <div className="flex space-x-4 mb-6">
                 <div className="w-1/2">
                   <label className="block text-sm font-semibold mb-2">Card Expiry</label>
@@ -105,6 +165,7 @@ const PaymentPage = () => {
                     onChange={handleCardDetailsChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     placeholder="MM/YY"
+                    required
                   />
                 </div>
                 <div className="w-1/2">
@@ -116,15 +177,13 @@ const PaymentPage = () => {
                     onChange={handleCardDetailsChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     placeholder="123"
+                    required
                   />
                 </div>
               </div>
             )}
 
-            <button
-              type="submit"
-              className="w-full bg-black text-white py-2 rounded-lg"
-            >
+            <button type="submit" className="w-full bg-black text-white py-2 rounded-lg">
               Place Order
             </button>
           </form>
@@ -142,29 +201,31 @@ const PaymentPage = () => {
         <div className="w-1/4 ml-6">
           <div className="bg-white p-6 rounded-lg shadow-lg">
             <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-            <div className="flex justify-between mb-2">
-              <span>1 × Car Battery</span>
-              <span>$129.99</span>
-            </div>
-            <div className="flex justify-between mb-2">
-              <span>1 × Alloy Wheel Set</span>
-              <span>$599.99</span>
-            </div>
+            {cartItems.length === 0 ? (
+              <p>No items in cart.</p>
+            ) : (
+              cartItems.map((item) => (
+                <div key={item.id} className="flex justify-between mb-2">
+                  <span>{item.quantity} × {item.name}</span>
+                  <span>${(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+              ))
+            )}
             <div className="flex justify-between mb-2">
               <span>Subtotal</span>
-              <span>$729.98</span>
+              <span>${subtotal}</span>
             </div>
             <div className="flex justify-between mb-2">
               <span>Shipping</span>
-              <span>$5.99</span>
+              <span>${shipping}</span>
             </div>
             <div className="flex justify-between mb-2">
               <span>Tax</span>
-              <span>$58.40</span>
+              <span>${tax}</span>
             </div>
             <div className="flex justify-between mb-4">
               <span className="font-semibold">Total</span>
-              <span className="font-semibold">$794.37</span>
+              <span className="font-semibold">${total}</span>
             </div>
           </div>
         </div>

@@ -7,6 +7,7 @@ import workerRoutes from "./routes/Worker.js";
 import dotenv from 'dotenv';
 import cors from 'cors'; // Import the cors package
 import cookieParser from 'cookie-parser';
+import OrderRoutes from "./routes/OrderRoutes.js";
 
 //raagul
 import productRoutes from './routes/productRoutes.js'; // Import product routes
@@ -64,6 +65,8 @@ app.use("/api/workers", workerRoutes);
 
 // Product-related Routes
 app.use('/api', productRoutes);
+
+app.use("/api/orders", OrderRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

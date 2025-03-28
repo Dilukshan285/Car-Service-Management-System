@@ -1,36 +1,197 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
+  const location = useLocation(); // To access navigation state
+  const { currentUser } = useSelector((state) => state.user);
   const [shippingInfo, setShippingInfo] = useState({
-    address: '',
-    city: '',
-    postalCode: '',
-    country: '',
-    state: '',
-    phone: '',
+    address: "",
+    area: "", // New field for area
+    city: "", // Will map to district
+    postalCode: "",
+    country: "",
+    state: "",
+    phone: "",
   });
+  const [cartItems, setCartItems] = useState([]);
+  const [provinces, setProvinces] = useState([]); // State to store fetched provinces
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch provinces from the API
+    const fetchProvinces = async () => {
+      try {
+        const response = await fetch(
+          "https://parseapi.back4app.com/classes/LK?limit=10000000&order=admin1&keys=admin1",
+          {
+            headers: {
+              "X-Parse-Application-Id": "qK0rkBqbu4zBtrLmi2Cq7vpmQo4VU4uoYX32HMRp",
+              "X-Parse-Master-Key": "TPIwnIhDkdRo1wwUMAZcjsHgiy9t58lpHQvB5s0f",
+            },
+          }
+        );
+        const data = await response.json();
+        // Extract unique admin1 values (provinces) and sort them
+        const uniqueProvinces = [...new Set(data.results.map((item) => item.admin1))].sort();
+        setProvinces(uniqueProvinces);
+      } catch (err) {
+        console.error("Failed to fetch provinces:", err);
+        toast.error("Failed to load provinces");
+      }
+    };
+
+    // Fetch cart items from the backend
+    const fetchCartItems = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        const response = await fetch("http://localhost:5000/api/cart", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch cart items");
+        }
+
+        const data = await response.json();
+        // Map the cart items to the format expected by the frontend
+        const formattedCartItems = data.data.cartItems.map((item) => ({
+          id: item.productId,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity,
+          image: item.product.images,
+        }));
+        setCartItems(formattedCartItems);
+      } catch (err) {
+        console.error("Error fetching cart items:", err);
+        toast.error("Failed to load cart items");
+        setCartItems([]);
+      }
+    };
+
+    const initializeData = async () => {
+      if (!currentUser) {
+        navigate("/sign-in");
+        return;
+      }
+
+      // Populate shipping info from currentUser
+      let phoneNumber = "";
+      if (currentUser.mobile) {
+        // Remove +94 and any spaces, then take the last 9 digits
+        phoneNumber = currentUser.mobile.replace(/^\+94\s?/, "");
+        // Ensure we only take the last 9 digits (e.g., 94775342152 -> 775342152)
+        phoneNumber = phoneNumber.slice(-9);
+      }
+
+      setShippingInfo({
+        address: currentUser.address || "",
+        area: currentUser.area || "", // Map area to the new field
+        city: currentUser.district || "", // Map district to city
+        postalCode: currentUser.postal ? currentUser.postal.toString() : "",
+        country: "Sri Lanka", // Default to Sri Lanka since phone prefix is +94
+        state: "", // Leave state empty for now; user will select from dropdown
+        phone: phoneNumber, // Set the phone number without +94
+      });
+
+      // Fetch cart items and provinces
+      await Promise.all([fetchCartItems(), fetchProvinces()]);
+      setLoading(false);
+    };
+
+    initializeData();
+  }, [currentUser, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setShippingInfo((prevInfo) => ({
-      ...prevInfo,
-      [name]: value,
-    }));
+
+    if (name === "phone") {
+      // Allow only digits and enforce 9-digit length
+      const cleanedValue = value.replace(/\D/g, ""); // Remove non-digits
+      console.log("Phone input value:", value, "Cleaned value:", cleanedValue); // Debug log
+      setShippingInfo((prevInfo) => ({
+        ...prevInfo,
+        phone: cleanedValue.slice(0, 9), // Limit to 9 digits
+      }));
+    } else {
+      setShippingInfo((prevInfo) => ({
+        ...prevInfo,
+        [name]: value,
+      }));
+    }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    navigate('/payment'); // Redirect to payment page after submitting shipping info
+  const calculateSubtotal = () => {
+    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2);
   };
+
+  const calculateShipping = () => "5.99"; // Static for now; adjust based on logic
+  const calculateTax = () => (parseFloat(calculateSubtotal()) * 0.08).toFixed(2); // Example 8% tax
+  const calculateTotal = () => {
+    return (parseFloat(calculateSubtotal()) + parseFloat(calculateShipping()) + parseFloat(calculateTax())).toFixed(2);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!currentUser) {
+      navigate("/sign-in");
+      return;
+    }
+
+    // Validation
+    if (
+      !shippingInfo.address ||
+      !shippingInfo.area ||
+      !shippingInfo.city ||
+      !shippingInfo.postalCode ||
+      !shippingInfo.country ||
+      !shippingInfo.state
+    ) {
+      toast.error("Please fill in all shipping details");
+      return;
+    }
+
+    // Phone number validation: must be exactly 9 digits
+    if (!/^\d{9}$/.test(shippingInfo.phone)) {
+      toast.error("Phone number must be exactly 9 digits");
+      return;
+    }
+
+    // Format phone number with +94 prefix before submission
+    const formattedPhone = `+94 ${shippingInfo.phone}`;
+    console.log("Formatted phone for submission:", formattedPhone);
+
+    // Prepare data to pass to PaymentPage
+    const paymentData = {
+      cartItems,
+      shippingInfo: { ...shippingInfo, phone: formattedPhone },
+      subtotal: calculateSubtotal(),
+      shipping: calculateShipping(),
+      tax: calculateTax(),
+      total: calculateTotal(),
+    };
+
+    // Navigate to PaymentPage with the data
+    navigate("/payment", { state: paymentData });
+  };
+
+  if (!currentUser) return null;
+  if (loading) return <div className="bg-gray-100 min-h-screen p-6"><p>Loading...</p></div>;
 
   return (
     <div className="bg-gray-100 min-h-screen p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <button
-          onClick={() => navigate('/cart')} // Navigate back to the Cart page
+          onClick={() => navigate("/cart")} // Navigate back to the Cart page
           className="text-blue-600"
         >
           &lt; Back to Cart
@@ -58,6 +219,23 @@ const CheckoutPage = () => {
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                 placeholder="Street address"
+                required
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-2" htmlFor="area">
+                Area
+              </label>
+              <input
+                type="text"
+                id="area"
+                name="area"
+                value={shippingInfo.area}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                placeholder="Area"
+                required
               />
             </div>
 
@@ -73,6 +251,7 @@ const CheckoutPage = () => {
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                 placeholder="City"
+                required
               />
             </div>
 
@@ -88,6 +267,7 @@ const CheckoutPage = () => {
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                 placeholder="Postal code"
+                required
               />
             </div>
 
@@ -101,11 +281,11 @@ const CheckoutPage = () => {
                 value={shippingInfo.country}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                required
               >
                 <option value="">Select country</option>
-                <option value="USA">USA</option>
-                <option value="Canada">Canada</option>
-                {/* Add other countries */}
+                <option value="Sri Lanka">Sri Lanka</option>
+                {/* Add other countries if needed */}
               </select>
             </div>
 
@@ -119,11 +299,14 @@ const CheckoutPage = () => {
                 value={shippingInfo.state}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                required
               >
                 <option value="">Select state</option>
-                <option value="California">California</option>
-                <option value="Ontario">Ontario</option>
-                {/* Add other states */}
+                {provinces.map((province) => (
+                  <option key={province} value={province}>
+                    {province}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -131,15 +314,22 @@ const CheckoutPage = () => {
               <label className="block text-sm font-semibold mb-2" htmlFor="phone">
                 Phone Number
               </label>
-              <input
-                type="text"
-                id="phone"
-                name="phone"
-                value={shippingInfo.phone}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                placeholder="Phone number"
-              />
+              <div className="flex items-center">
+                <span className="inline-block px-4 py-2 border border-gray-300 rounded-l-lg bg-gray-100 text-gray-700">
+                  +94
+                </span>
+                <input
+                  type="text"
+                  id="phone"
+                  name="phone"
+                  value={shippingInfo.phone}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="775342152"
+                  required
+                  maxLength="9"
+                />
+              </div>
             </div>
 
             <button
@@ -155,29 +345,31 @@ const CheckoutPage = () => {
         <div className="w-1/4 ml-6">
           <div className="bg-white p-6 rounded-lg shadow-lg">
             <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-            <div className="flex justify-between mb-2">
-              <span>1 × Car Battery</span>
-              <span>$129.99</span>
-            </div>
-            <div className="flex justify-between mb-2">
-              <span>1 × Alloy Wheel Set</span>
-              <span>$599.99</span>
-            </div>
+            {cartItems.length === 0 ? (
+              <p>No items in cart.</p>
+            ) : (
+              cartItems.map((item) => (
+                <div key={item.id} className="flex justify-between mb-2">
+                  <span>{item.quantity} × {item.name}</span>
+                  <span>${(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+              ))
+            )}
             <div className="flex justify-between mb-2">
               <span>Subtotal</span>
-              <span>$729.98</span>
+              <span>${calculateSubtotal()}</span>
             </div>
             <div className="flex justify-between mb-2">
               <span>Shipping</span>
-              <span>$5.99</span>
+              <span>${calculateShipping()}</span>
             </div>
             <div className="flex justify-between mb-2">
               <span>Tax</span>
-              <span>$58.40</span>
+              <span>${calculateTax()}</span>
             </div>
             <div className="flex justify-between mb-4">
               <span className="font-semibold">Total</span>
-              <span className="font-semibold">$794.37</span>
+              <span className="font-semibold">${calculateTotal()}</span>
             </div>
           </div>
         </div>

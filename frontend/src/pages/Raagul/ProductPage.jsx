@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
 
 const ProductPage = () => {
   const navigate = useNavigate();
@@ -7,53 +9,74 @@ const ProductPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [category, setCategory] = useState("All");
-  const [priceRange, setPriceRange] = useState([0, 1500]); // [min, max]
+  const [priceRange, setPriceRange] = useState([0, 1500]);
   const [availability, setAvailability] = useState(false);
-  const [cart, setCart] = useState([]);
+  const [cartCount, setCartCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const { currentUser } = useSelector((state) => state.user);
 
-  // Fetch products from API on mount
+  useEffect(() => {
+    if (!currentUser) navigate("/sign-in");
+  }, [currentUser, navigate]);
+
+  const fetchCartCount = async () => {
+    if (!currentUser) return;
+    const token = localStorage.getItem("access_token");
+    try {
+      const response = await fetch("http://localhost:5000/api/cart", {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      if (data.success) {
+        const total = data.data.cartItems.reduce((sum, item) => sum + item.quantity, 0);
+        setCartCount(total);
+      }
+    } catch (err) {
+      console.error("Error fetching cart count:", err);
+    }
+  };
+
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       setError(null);
+      const token = localStorage.getItem("access_token");
       try {
         const response = await fetch("http://localhost:5000/api/products", {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
           credentials: "include",
         });
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
-        console.log("Fetched products:", data);
         if (data.success) {
-          const mappedProducts = (data.data || []).map((product) => ({
+          setProducts(data.data.map(product => ({
             id: product._id,
             name: product.name,
             price: product.price,
             category: product.category,
-            rating: 4.5, // Default rating (not in schema)
-            image: product.images || "https://via.placeholder.com/150",
+            rating: 4.5,
+            images: product.images || "https://via.placeholder.com/150",
             inStock: product.stock > 0,
             description: product.description || "No description available",
             stock: product.stock,
-          }));
-          setProducts(mappedProducts);
-        } else {
-          throw new Error(data.message || "Failed to fetch products");
+          })));
         }
       } catch (err) {
-        console.error("Error fetching products:", err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-
     fetchProducts();
-  }, []);
+    fetchCartCount();
+  }, [currentUser]);
 
-  // Filter products based on category, price range, availability, and search query
   const filteredProducts = products.filter((product) => {
     const inCategory = category === "All" || product.category === category;
     const inPriceRange = product.price >= priceRange[0] && product.price <= priceRange[1];
@@ -62,29 +85,40 @@ const ProductPage = () => {
     return inCategory && inPriceRange && inStock && matchesSearch;
   });
 
-  // Handle adding products to the cart
-  const handleAddToCart = (product) => {
-    if (!product.inStock) return; // Prevent adding out-of-stock items
-    setCart((prevCart) => {
-      const existingProduct = prevCart.find((item) => item.id === product.id);
-      if (existingProduct) {
-        return prevCart.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      } else {
-        return [...prevCart, { ...product, quantity: 1 }];
+  const handleAddToCart = async (product) => {
+    if (!product.inStock) {
+      toast.error("Product is out of stock!");
+      return;
+    }
+    const token = localStorage.getItem("access_token");
+    try {
+      const response = await fetch("http://localhost:5000/api/cart", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify({ productId: product.id, quantity: 1 }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Failed to add to cart");
+      if (data.success) {
+        toast.success(`${product.name} added to cart!`);
+        fetchCartCount();
       }
-    });
+    } catch (err) {
+      console.error("Error adding to cart:", err);
+      toast.error(err.message || "Failed to add to cart");
+    }
   };
 
-  // Navigate to Cart Page and pass cart data
-  const handleGoToCart = () => {
-    navigate("/cart", { state: { cart } });
-  };
+  const handleGoToCart = () => navigate("/cart");
+
+  if (!currentUser) return null;
 
   return (
     <div className="bg-gray-100 p-6 min-h-screen">
-      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-4xl font-semibold text-gray-800">Car Parts & Accessories</h1>
         <div className="flex items-center space-x-4">
@@ -92,17 +126,14 @@ const ProductPage = () => {
             onClick={handleGoToCart}
             className="bg-gray-700 text-white px-4 py-2 rounded-lg transition-all duration-300 hover:bg-gray-800 hover:scale-105"
           >
-            Cart ({cart.reduce((total, product) => total + product.quantity, 0)})
+            Cart ({cartCount})
           </button>
         </div>
       </div>
 
       <div className="flex">
-        {/* Filters Section */}
         <div className="w-1/4 bg-white p-6 rounded-lg shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-6 text-gray-800">Filters</h2>
-
-          {/* Categories Dropdown */}
           <div className="mb-6">
             <h3 className="text-lg font-medium mb-2 text-gray-700">Categories</h3>
             <select
@@ -119,8 +150,6 @@ const ProductPage = () => {
               <option value="Suspension">Suspension</option>
             </select>
           </div>
-
-          {/* Price Range */}
           <div className="mb-6">
             <h3 className="text-lg font-medium mb-2 text-gray-700">Price Range</h3>
             <div className="flex items-center space-x-2">
@@ -131,16 +160,8 @@ const ProductPage = () => {
                 step="1"
                 value={priceRange[0]}
                 onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
-                className="w-1/2 cursor-pointer h-2 bg-gray-200 rounded-lg appearance-none transition-all duration-300 hover:bg-gray-300"
-              />
-              <input
-                type="range"
-                min="0"
-                max="1500"
-                step="1"
-                value={priceRange[1]}
-                onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                className="w-1/2 cursor-pointer h-2 bg-gray-200 rounded-lg appearance-none transition-all duration-300 hover:bg-gray-300"
+                className="w-full h-4 bg-gray-300 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 hover:bg-gray-400"
+                style={{ accentColor: "#3b82f6" }}
               />
             </div>
             <div className="flex justify-between text-sm text-gray-500 mt-2">
@@ -148,8 +169,6 @@ const ProductPage = () => {
               <span>${priceRange[1]}</span>
             </div>
           </div>
-
-          {/* Availability */}
           <div className="mb-6">
             <h3 className="text-lg font-medium mb-2 text-gray-700">Availability</h3>
             <label className="inline-flex items-center">
@@ -164,9 +183,7 @@ const ProductPage = () => {
           </div>
         </div>
 
-        {/* Product List */}
         <div className="w-3/4 pl-6">
-          {/* Search Bar and Heading */}
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold text-gray-800">
               Browse our selection of high-quality automotive parts and accessories
@@ -194,7 +211,7 @@ const ProductPage = () => {
                   className="bg-white rounded-lg shadow-lg p-4 transition-all duration-300 hover:scale-105 hover:shadow-xl"
                 >
                   <img
-                    src={product.image}
+                    src={product.images}
                     alt={product.name}
                     className="w-full h-40 object-cover mb-4 rounded-lg"
                     onError={(e) => (e.target.src = "https://via.placeholder.com/150")}

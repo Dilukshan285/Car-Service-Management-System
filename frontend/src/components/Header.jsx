@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FaCar } from "react-icons/fa"; // Changed FaLeaf to FaCar for car service theme
+import { FaCar } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { Dropdown } from "flowbite-react";
 import { signoutSuccess } from "../redux/user/userSlice.js";
@@ -35,8 +35,7 @@ export default function Header() {
       <div className="container mx-auto px-4 py-1 flex flex-col sm:flex-row items-center justify-between">
         {/* Logo Section */}
         <div className="flex items-center space-x-2 mb-2 sm:mb-0">
-          <FaCar className="text-white w-6 h-6" aria-hidden="true" />{" "}
-          {/* Car icon */}
+          <FaCar className="text-white w-6 h-6" aria-hidden="true" />
           <span
             className="text-xl font-bold text-white"
             role="heading"
@@ -67,6 +66,28 @@ export default function Header() {
                 Accessories
               </Link>
             </li>
+            {currentUser && (
+              <>
+                <li>
+                  <Link
+                    className="hover:text-blue-300 transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-sm px-2 py-1"
+                    to="/myorders"
+                    aria-label="My Orders"
+                  >
+                    My Orders
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className="hover:text-blue-300 transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-sm px-2 py-1"
+                    to="/my-bookings"
+                    aria-label="My Bookings"
+                  >
+                    My Bookings
+                  </Link>
+                </li>
+              </>
+            )}
             <li>
               <Link
                 className="hover:text-blue-300 transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-sm px-2 py-1"
@@ -76,14 +97,13 @@ export default function Header() {
                 About
               </Link>
             </li>
-
             <li>
               <Link
                 className="hover:text-blue-300 transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-sm px-2 py-1"
-                to="/about"
-                aria-label="About"
+                to="/contact"
+                aria-label="Contact Us"
               >
-                Contact us
+                Contact Us
               </Link>
             </li>
           </ul>
