@@ -11,7 +11,7 @@ const ServiceDetails = () => {
   const [error, setError] = useState(null);
   const [additionalIssues, setAdditionalIssues] = useState("");
   const [checklist, setChecklist] = useState({});
-  const readOnly = location.state?.readOnly || false; // Check if readOnly flag is set
+  const readOnly = location.state?.readOnly || false;
 
   useEffect(() => {
     const loadServiceDetails = () => {
@@ -23,16 +23,15 @@ const ServiceDetails = () => {
           throw new Error("Service data not found or plate mismatch.");
         }
 
-        // Map appointment data to serviceData
         const mappedServiceData = {
           vehicle: `${appointment.make} ${appointment.model} (${appointment.year})`,
-          color: "N/A", // Still not provided by backend
-          vin: "N/A", // Not provided
+          color: "N/A",
+          vin: "N/A",
           license: appointment.carNumberPlate,
           mileage: appointment.mileage.toString(),
           owner: appointment.user,
-          ownerPhone: "N/A", // Not provided
-          lastService: "N/A", // Not provided
+          ownerPhone: "N/A",
+          lastService: "N/A",
           serviceType: appointment.serviceType,
           customerNotes: appointment.notes || "No notes provided",
           checklist: [
@@ -67,7 +66,7 @@ const ServiceDetails = () => {
   }, [plate, location.state]);
 
   const handleChecklistChange = (item) => {
-    if (readOnly) return; // Prevent changes in read-only mode
+    if (readOnly) return;
     setChecklist((prev) => ({
       ...prev,
       [item]: !prev[item],
@@ -75,7 +74,7 @@ const ServiceDetails = () => {
   };
 
   const handleAdditionalIssuesChange = (e) => {
-    if (readOnly) return; // Prevent changes in read-only mode
+    if (readOnly) return;
     setAdditionalIssues(e.target.value);
   };
 
@@ -83,14 +82,12 @@ const ServiceDetails = () => {
     try {
       const completedTasks = Object.keys(checklist).filter((task) => checklist[task]);
 
-      // Update appointment status via backend API
       const response = await fetch(
         `http://localhost:5000/api/appointments/${serviceData.appointmentId}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            // Add authorization header if required
           },
           body: JSON.stringify({
             status: "Completed",
@@ -112,6 +109,38 @@ const ServiceDetails = () => {
     }
   };
 
+  const handleUpdateService = async () => {
+    try {
+      const updatedTasks = Object.keys(checklist)
+        .map((task) => `${task}: ${checklist[task] ? "Completed" : "Pending"}`)
+        .join("\n");
+
+      const response = await fetch(
+        `http://localhost:5000/api/appointments/${serviceData.appointmentId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: "In Progress",
+            notes: `${serviceData.customerNotes}\nAdditional Issues: ${additionalIssues || "None"}\nChecklist:\n${updatedTasks}`,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to update service");
+      }
+
+      toast.success("Service updated successfully!");
+    } catch (err) {
+      toast.error("Error updating service: " + err.message);
+    }
+  };
+
   const handleGenerateReport = () => {
     toast.info("Report generation is not implemented yet.");
   };
@@ -128,10 +157,13 @@ const ServiceDetails = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-8 flex justify-center items-center">
         <p className="text-red-600">{error}</p>
-        {!readOnly && ( // Show "Back to Dashboard" link only if not in read-only mode
-          <Link to="/service-dashboard" className="text-blue-600 hover:underline mt-4">
+        {!readOnly && (
+          <button
+            onClick={() => navigate("/service-dashboard")}
+            className="mt-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white px-4 py-2 rounded-lg hover:from-gray-900 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg"
+          >
             Back to Dashboard
-          </Link>
+          </button>
         )}
       </div>
     );
@@ -141,10 +173,13 @@ const ServiceDetails = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-8 flex justify-center items-center">
         <p className="text-gray-600">Service not found.</p>
-        {!readOnly && ( // Show "Back to Dashboard" link only if not in read-only mode
-          <Link to="/service-dashboard" className="text-blue-600 hover:underline mt-4">
+        {!readOnly && (
+          <button
+            onClick={() => navigate("/service-dashboard")}
+            className="mt-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white px-4 py-2 rounded-lg hover:from-gray-900 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg"
+          >
             Back to Dashboard
-          </Link>
+          </button>
         )}
       </div>
     );
@@ -153,14 +188,15 @@ const ServiceDetails = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-8">
       <div className="flex justify-between items-center mb-8">
-        {!readOnly && ( // Show "Back to Dashboard" link only if not in read-only mode
-          <div className="flex items-center space-x-4">
-            <Link to="/service-dashboard" className="text-blue-600 hover:underline">
-              Back to Dashboard
-            </Link>
-          </div>
+        {!readOnly && (
+          <button
+            onClick={() => navigate("/service-dashboard")}
+            className="bg-gradient-to-r from-gray-800 to-gray-900 text-white px-4 py-2 rounded-lg hover:from-gray-900 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg"
+          >
+            Back to Dashboard
+          </button>
         )}
-        {!readOnly && ( // Hide "Generate Report" button in read-only mode
+        {!readOnly && (
           <div className="flex space-x-4">
             <button
               onClick={handleGenerateReport}
@@ -244,7 +280,7 @@ const ServiceDetails = () => {
                         checked={checklist[item] || false}
                         onChange={() => handleChecklistChange(item)}
                         className="h-5 w-5 text-gray-800 rounded"
-                        disabled={readOnly} // Disable in read-only mode
+                        disabled={readOnly}
                       />
                       <span>{item}</span>
                     </label>
@@ -265,14 +301,22 @@ const ServiceDetails = () => {
                       ? "Additional issues (view only)"
                       : "Describe any additional issues or observations..."
                   }
-                  disabled={readOnly} // Disable in read-only mode
+                  disabled={readOnly}
                 ></textarea>
+                {!readOnly && (
+                  <button
+                    onClick={handleUpdateService}
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-800 text-white py-2 rounded-lg mt-4 font-semibold hover:from-blue-700 hover:to-blue-900 transition-all duration-300 shadow-md hover:shadow-lg"
+                  >
+                    Update Service
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {!readOnly && ( // Hide "Complete Service" button in read-only mode
+        {!readOnly && (
           <button
             onClick={handleCompleteService}
             className="w-full bg-gradient-to-r from-gray-800 to-gray-900 text-white py-3 rounded-lg mt-8 font-semibold hover:from-gray-900 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg"
