@@ -7,6 +7,7 @@ import DeleteConfirmationModal from "./DeleteConfirmationModal";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { jsPDF } from "jspdf"; // Import jsPDF
 
 const Workers = () => {
   const [viewMode, setViewMode] = useState("Grid");
@@ -31,14 +32,9 @@ const Workers = () => {
           throw new Error(`Failed to fetch workers: ${response.status} ${response.statusText}`);
         }
         const data = await response.json();
-        console.log("Fetched workers:", data);
         if (data && typeof data === "object" && Array.isArray(data.data)) {
           setWorkers(data.data);
         } else {
-          console.error("API response does not contain a valid 'data' array:", {
-            type: typeof data,
-            data,
-          });
           setWorkers([]);
           throw new Error("API response does not contain a valid 'data' array");
         }
@@ -53,14 +49,75 @@ const Workers = () => {
     fetchWorkers();
   }, []);
 
+  // Generate PDF Report function
+  const generateReport = () => {
+    try {
+      const doc = new jsPDF();
+      
+      // Header
+      doc.setFontSize(20);
+      doc.setTextColor(33, 150, 243); // Blue color
+      doc.text("Revup Workers Report", 20, 20);
+      
+      // Date
+      doc.setFontSize(12);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
+      
+      // Workers Summary
+      doc.setFontSize(16);
+      doc.setTextColor(0);
+      doc.text("Workers Summary", 20, 50);
+      
+      // Table Headers
+      doc.setFontSize(12);
+      const headers = ["Name", "Specialization", "Workload", "Status"];
+      const startY = 60;
+      let currentY = startY;
+      
+      // Draw table headers
+      doc.setFillColor(33, 150, 243);
+      doc.rect(20, currentY, 170, 10, "F");
+      doc.setTextColor(255);
+      headers.forEach((header, index) => {
+        doc.text(header, 22 + (index * 45), currentY + 7);
+      });
+      
+      // Table Content
+      currentY += 10;
+      doc.setFontSize(10);
+      doc.setTextColor(0);
+      
+      filteredWorkers.forEach((worker, index) => {
+        const rowColor = index % 2 === 0 ? 240 : 255;
+        doc.setFillColor(rowColor, rowColor, rowColor);
+        doc.rect(20, currentY, 170, 10, "F");
+        
+        doc.text(worker.fullName, 22, currentY + 7);
+        doc.text(worker.primarySpecialization || "N/A", 67, currentY + 7);
+        doc.text(`${worker.tasks?.length || worker.workload || 0} tasks`, 112, currentY + 7);
+        doc.text(worker.status || "Available", 157, currentY + 7);
+        
+        currentY += 10;
+      });
+      
+      // Footer
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Total Workers: ${filteredWorkers.length}`, 20, currentY + 10);
+      
+      // Save the PDF
+      doc.save(`Revup_Workers_Report_${new Date().toISOString().slice(0,10)}.pdf`);
+      toast.success("Report generated successfully");
+    } catch (error) {
+      console.error("Error generating report:", error);
+      toast.error("Failed to generate report");
+    }
+  };
+
   const handleAddWorker = (newWorker) => {
     try {
-      console.log("New worker received in handleAddWorker:", newWorker);
-      setWorkers((prevWorkers) => {
-        const updatedWorkers = [...prevWorkers, newWorker];
-        console.log("Updated workers state:", updatedWorkers);
-        return updatedWorkers;
-      });
+      setWorkers((prevWorkers) => [...prevWorkers, newWorker]);
       toast.success("Worker added successfully");
     } catch (err) {
       console.error("Error adding worker to state:", err);
@@ -89,11 +146,10 @@ const Workers = () => {
       await axios.delete(`http://localhost:5000/api/workers/delete/${workerToDelete._id}`);
       setWorkers(workers.filter((worker) => worker._id !== workerToDelete._id));
       toast.success("Worker deleted successfully");
-      // Delay closing the modal to allow the toast to render
       setTimeout(() => {
         setIsDeleteModalOpen(false);
         setWorkerToDelete(null);
-      }, 500); // 500ms delay
+      }, 500);
     } catch (err) {
       console.error("Error deleting worker:", err);
       toast.error("Failed to delete worker. Please try again.");
@@ -190,8 +246,29 @@ const Workers = () => {
                 </svg>
                 Add Worker
               </button>
+              <button
+                className="bg-green-600 text-white rounded-lg py-2 px-4 flex items-center hover:bg-green-700 transition-all duration-200 shadow-md"
+                onClick={generateReport}
+              >
+                <svg
+                  className="h-5 w-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9 17v-6a2 2 0 012-2h2a2 2 0 012 2v6m-6 0h6m-3-8v4m-7 4h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+                Generate Report
+              </button>
             </div>
           </div>
+          {/* Rest of the JSX remains the same */}
           <div className="flex justify-between items-center mb-6">
             <div className="flex space-x-2">
               <button
@@ -243,6 +320,7 @@ const Workers = () => {
                         key={getWorkerKey(worker, index)}
                         className="bg-gray-800 p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
                       >
+                        {/* Grid view content remains the same */}
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center">
                             <div className="h-14 w-14 bg-gradient-to-br from-gray-700 to-gray-600 rounded-full mr-4 flex items-center justify-center overflow-hidden shadow-md">
@@ -374,6 +452,7 @@ const Workers = () => {
                 </div>
               ) : (
                 <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+                  {/* List view content remains the same */}
                   <table className="w-full">
                     <thead>
                       <tr className="bg-gray-700 text-gray-200">
