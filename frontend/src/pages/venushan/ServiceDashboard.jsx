@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { signoutSuccess } from "../../redux/user/userSlice";
+import { toast } from "react-toastify";
 import ServiceCard from "./ServiceCard";
 
 const ServiceDashboard = () => {
@@ -24,6 +25,8 @@ const ServiceDashboard = () => {
       if (response.ok && data.success) {
         dispatch(signoutSuccess());
         localStorage.removeItem("user");
+        // Clear all toasts before navigating
+        toast.dismiss(); // Dismiss all active toasts
         navigate("/sign-in");
       } else {
         console.error("Signout failed:", data.message);
@@ -44,12 +47,12 @@ const ServiceDashboard = () => {
         const data = await response.json();
 
         if (response.ok && data.success) {
-          // Map the full schedule data directly to services
           const mappedServices = data.data.schedule.map((appointment) => ({
             ...appointment,
-            worker: data.data.worker, // Add worker details to each appointment
+            worker: data.data.worker,
           }));
 
+          console.log("Mapped Services:", mappedServices);
           setServices(mappedServices);
           setWorkerName(data.data.worker.fullName);
         } else {

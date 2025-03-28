@@ -21,7 +21,8 @@ const Manager_Dashboard = () => {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch appointments");
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch appointments: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const data = await response.json();
@@ -43,7 +44,8 @@ const Manager_Dashboard = () => {
         });
 
         if (!workerResponse.ok) {
-          throw new Error("Failed to fetch workers");
+          const errorText = await workerResponse.text();
+          throw new Error(`Failed to fetch workers: ${workerResponse.status} ${workerResponse.statusText} - ${errorText}`);
         }
 
         const workerData = await workerResponse.json();
@@ -56,6 +58,14 @@ const Manager_Dashboard = () => {
     };
 
     fetchData();
+
+    // Add polling to refresh appointments every 10 seconds
+    const interval = setInterval(() => {
+      fetchAppointments();
+    }, 10000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
   }, []);
 
   const filteredAppointments = appointments.filter((appointment) => {
@@ -127,7 +137,7 @@ const Manager_Dashboard = () => {
                   activeTab={activeTab}
                   workers={workers}
                   onWorkerAssigned={fetchAppointments}
-                  onWorkerUnassigned={fetchAppointments} // Added callback for unassign
+                  onWorkerUnassigned={fetchAppointments}
                 />
               ))}
             </div>

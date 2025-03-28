@@ -1,17 +1,96 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const ServiceCard = ({ appointment }) => {
   const navigate = useNavigate();
+  const [isAccepted, setIsAccepted] = useState(appointment.isAcceptedByWorker || false);
 
-  const handleAcceptService = () => {
-    // Navigate to ServiceDetails and pass the full appointment data as state
+  const handleAcceptService = async () => {
+    try {
+      // Create a promise for the API call
+      const acceptServicePromise = fetch(
+        `http://localhost:5000/api/appointments/accept-service/${appointment.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        }
+      ).then(async (response) => {
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Error response:", errorText);
+          throw new Error(
+            `Failed to accept service: ${response.status} ${response.statusText}`
+          );
+        }
+        return response.json();
+      });
+
+      // Show toast with the promise and ensure it displays immediately
+      await toast.promise(
+        acceptServicePromise,
+        {
+          pending: {
+            render() {
+              return "Accepting service...";
+            },
+            delay: 0, // Show immediately
+          },
+          success: {
+            render() {
+              return "Service accepted successfully!";
+            },
+            autoClose: 2000, // Success message displays for 2 seconds
+            delay: 0, // Ensure success message shows immediately after pending
+          },
+          error: {
+            render({ data }) {
+              return `Error accepting service: ${data.message}`;
+            },
+          },
+        },
+        {
+          position: "top-right",
+          autoClose: 2000, // Ensure the toast closes after 2 seconds
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: "light",
+        }
+      );
+
+      // Update local state to reflect that the service has been accepted
+      setIsAccepted(true);
+
+      // Navigate after the toast has been displayed
+      navigate(`/service-details/${appointment.carNumberPlate}`, {
+        state: { ...appointment, status: "In Progress", isAcceptedByWorker: true },
+      });
+    } catch (error) {
+      toast.error("Error accepting service: " + error.message, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        theme: "light",
+      });
+      console.error("Accept service error:", error);
+    }
+  };
+
+  const handleViewProgress = () => {
+    // Navigate to the service details page when "View Progress" is clicked
     navigate(`/service-details/${appointment.carNumberPlate}`, {
-      state: appointment,
+      state: { ...appointment, status: "In Progress", isAcceptedByWorker: true },
     });
   };
 
-  // Construct vehicle string from make, model, and year
   const vehicle = `${appointment.make} ${appointment.model} (${appointment.year})`;
   const isUrgent = new Date(appointment.fullDateTime) - new Date() <= 24 * 60 * 60 * 1000;
 
@@ -47,10 +126,14 @@ const ServiceCard = ({ appointment }) => {
         </p>
       </div>
       <button
-        onClick={handleAcceptService}
-        className="w-full bg-gradient-to-r from-gray-800 to-gray-900 text-white py-3 rounded-lg mt-6 font-semibold hover:from-gray-900 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg"
+        onClick={isAccepted ? handleViewProgress : handleAcceptService}
+        className={`w-full text-white py-3 rounded-lg mt-6 font-semibold transition-all duration-300 shadow-md hover:shadow-lg ${
+          isAccepted
+            ? "bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900"
+            : "bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-gray-700"
+        }`}
       >
-        Accept Service
+        {isAccepted ? "View Progress" : "Accept Service"}
       </button>
     </div>
   );

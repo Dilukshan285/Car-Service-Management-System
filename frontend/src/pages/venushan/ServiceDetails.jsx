@@ -11,6 +11,7 @@ const ServiceDetails = () => {
   const [error, setError] = useState(null);
   const [additionalIssues, setAdditionalIssues] = useState("");
   const [checklist, setChecklist] = useState({});
+  const readOnly = location.state?.readOnly || false; // Check if readOnly flag is set
 
   useEffect(() => {
     const loadServiceDetails = () => {
@@ -66,6 +67,7 @@ const ServiceDetails = () => {
   }, [plate, location.state]);
 
   const handleChecklistChange = (item) => {
+    if (readOnly) return; // Prevent changes in read-only mode
     setChecklist((prev) => ({
       ...prev,
       [item]: !prev[item],
@@ -73,6 +75,7 @@ const ServiceDetails = () => {
   };
 
   const handleAdditionalIssuesChange = (e) => {
+    if (readOnly) return; // Prevent changes in read-only mode
     setAdditionalIssues(e.target.value);
   };
 
@@ -125,9 +128,11 @@ const ServiceDetails = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-8 flex justify-center items-center">
         <p className="text-red-600">{error}</p>
-        <Link to="/service-dashboard" className="text-blue-600 hover:underline mt-4">
-          Back to Dashboard
-        </Link>
+        {!readOnly && ( // Show "Back to Dashboard" link only if not in read-only mode
+          <Link to="/service-dashboard" className="text-blue-600 hover:underline mt-4">
+            Back to Dashboard
+          </Link>
+        )}
       </div>
     );
   }
@@ -136,9 +141,11 @@ const ServiceDetails = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-8 flex justify-center items-center">
         <p className="text-gray-600">Service not found.</p>
-        <Link to="/service-dashboard" className="text-blue-600 hover:underline mt-4">
-          Back to Dashboard
-        </Link>
+        {!readOnly && ( // Show "Back to Dashboard" link only if not in read-only mode
+          <Link to="/service-dashboard" className="text-blue-600 hover:underline mt-4">
+            Back to Dashboard
+          </Link>
+        )}
       </div>
     );
   }
@@ -146,27 +153,31 @@ const ServiceDetails = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-8">
       <div className="flex justify-between items-center mb-8">
-        <div className="flex items-center space-x-4">
-          <Link to="/service-dashboard" className="text-blue-600 hover:underline">
-            Back to Dashboard
-          </Link>
-        </div>
-        <div className="flex space-x-4">
-          <button
-            onClick={handleGenerateReport}
-            className="bg-gradient-to-r from-gray-800 to-gray-900 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-gray-900 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg"
-          >
-            <span>Generate Report</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
+        {!readOnly && ( // Show "Back to Dashboard" link only if not in read-only mode
+          <div className="flex items-center space-x-4">
+            <Link to="/service-dashboard" className="text-blue-600 hover:underline">
+              Back to Dashboard
+            </Link>
+          </div>
+        )}
+        {!readOnly && ( // Hide "Generate Report" button in read-only mode
+          <div className="flex space-x-4">
+            <button
+              onClick={handleGenerateReport}
+              className="bg-gradient-to-r from-gray-800 to-gray-900 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-gray-900 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg"
             >
-              <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6zm2 2v2h8V8H6zm0 4v2h4v-2H6z" />
-            </svg>
-          </button>
-        </div>
+              <span>Generate Report</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6zm2 2v2h8V8H6zm0 4v2h4v-2H6z" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="bg-white p-8 rounded-xl shadow-xl border border-gray-200">
@@ -180,18 +191,23 @@ const ServiceDetails = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <span className="mr-2 text-blue-600">🚗</span> Vehicle Information
             </h3>
-            <div className="space-y-3">
-              <p className="text-gray-700">
-                <strong>Vehicle:</strong> {serviceData.vehicle}
-              </p>
-              <p className="text-gray-700">
-                <strong>License:</strong> {serviceData.license}
-              </p>
-              <p className="text-gray-700">
-                <strong>Mileage:</strong> {serviceData.mileage} miles
-              </p>
-              <h3 className="text-lg font-semibold text-gray-900 mt-4">Owner</h3>
-              <p className="text-gray-700">{serviceData.owner}</p>
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <span className="w-32 font-semibold text-gray-800">Vehicle:</span>
+                <span className="text-gray-700">{serviceData.vehicle}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-32 font-semibold text-gray-800">License:</span>
+                <span className="text-gray-700">{serviceData.license}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-32 font-semibold text-gray-800">Mileage:</span>
+                <span className="text-gray-700">{serviceData.mileage} miles</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-32 font-semibold text-gray-800">Owner:</span>
+                <span className="text-gray-700">{serviceData.owner}</span>
+              </div>
             </div>
           </div>
 
@@ -200,24 +216,26 @@ const ServiceDetails = () => {
               <span className="mr-2 text-yellow-600">🛠️</span> Service Information
             </h3>
             <p className="text-gray-600 mb-6">
-              Complete the service checklist and note any additional issues
+              {readOnly
+                ? "View the service checklist and any additional issues"
+                : "Complete the service checklist and note any additional issues"}
             </p>
 
             <div className="space-y-6">
               <div>
-                <h4 className="font-semibold text-gray-800">Service Type</h4>
+                <h4 className="font-semibold text-gray-800 mb-2">Service Type</h4>
                 <p className="text-gray-700">{serviceData.serviceType}</p>
               </div>
 
               <div>
-                <h4 className="font-semibold text-gray-800">Customer Notes</h4>
+                <h4 className="font-semibold text-gray-800 mb-2">Customer Notes</h4>
                 <p className="bg-gray-100 p-3 rounded-lg text-gray-700">
                   {serviceData.customerNotes}
                 </p>
               </div>
 
               <div>
-                <h4 className="font-semibold text-gray-800">Service Checklist</h4>
+                <h4 className="font-semibold text-gray-800 mb-2">Service Checklist</h4>
                 <div className="grid grid-cols-2 gap-3 mt-2">
                   {serviceData.checklist.map((item, index) => (
                     <label key={index} className="flex items-center space-x-3 text-gray-700">
@@ -226,6 +244,7 @@ const ServiceDetails = () => {
                         checked={checklist[item] || false}
                         onChange={() => handleChecklistChange(item)}
                         className="h-5 w-5 text-gray-800 rounded"
+                        disabled={readOnly} // Disable in read-only mode
                       />
                       <span>{item}</span>
                     </label>
@@ -234,24 +253,33 @@ const ServiceDetails = () => {
               </div>
 
               <div>
-                <h4 className="font-semibold text-gray-800">Additional Issues Found</h4>
+                <h4 className="font-semibold text-gray-800 mb-2">Additional Issues Found</h4>
                 <textarea
                   value={additionalIssues}
                   onChange={handleAdditionalIssuesChange}
-                  className="w-full h-24 p-3 border border-gray-300 rounded-lg mt-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all duration-300"
-                  placeholder="Describe any additional issues or observations..."
+                  className={`w-full h-24 p-3 border border-gray-300 rounded-lg mt-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all duration-300 ${
+                    readOnly ? "bg-gray-100 cursor-not-allowed" : ""
+                  }`}
+                  placeholder={
+                    readOnly
+                      ? "Additional issues (view only)"
+                      : "Describe any additional issues or observations..."
+                  }
+                  disabled={readOnly} // Disable in read-only mode
                 ></textarea>
               </div>
             </div>
           </div>
         </div>
 
-        <button
-          onClick={handleCompleteService}
-          className="w-full bg-gradient-to-r from-gray-800 to-gray-900 text-white py-3 rounded-lg mt-8 font-semibold hover:from-gray-900 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg"
-        >
-          Complete Service
-        </button>
+        {!readOnly && ( // Hide "Complete Service" button in read-only mode
+          <button
+            onClick={handleCompleteService}
+            className="w-full bg-gradient-to-r from-gray-800 to-gray-900 text-white py-3 rounded-lg mt-8 font-semibold hover:from-gray-900 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg"
+          >
+            Complete Service
+          </button>
+        )}
       </div>
     </div>
   );
