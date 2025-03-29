@@ -1,35 +1,44 @@
-import { Schema, model } from "mongoose";
+import mongoose from "mongoose";
 
-const workerSchema = new Schema(
+const workerSchema = new mongoose.Schema(
   {
     fullName: {
       type: String,
       required: true,
+      trim: true,
     },
     email: {
       type: String,
       required: true,
       unique: true,
+      trim: true,
+      lowercase: true,
     },
     password: {
       type: String,
+      required: true,
     },
     phoneNumber: {
       type: String,
       required: true,
+      unique: true,
+      trim: true,
     },
     address: {
       type: String,
       required: true,
+      trim: true,
     },
-    nic: { // Added NIC field
+    nic: {
       type: String,
       required: true,
-      unique: true, // Assuming NIC should be unique
+      unique: true,
+      trim: true,
     },
     primarySpecialization: {
       type: String,
       required: true,
+      trim: true,
     },
     skills: {
       type: [String],
@@ -49,6 +58,7 @@ const workerSchema = new Schema(
     },
     additionalNotes: {
       type: String,
+      trim: true,
       default: "",
     },
     workload: {
@@ -57,12 +67,8 @@ const workerSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["available", "busy"],
+      enum: ["available", "busy", "on_leave"],
       default: "available",
-    },
-    role: {
-      type: String,
-      default: "worker",
     },
     profilePicture: {
       type: String,
@@ -70,7 +76,7 @@ const workerSchema = new Schema(
     },
     tasks: [
       {
-        type: Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "Appointment",
       },
     ],
@@ -81,5 +87,6 @@ const workerSchema = new Schema(
   { timestamps: true }
 );
 
-const Worker = model("Worker", workerSchema);
+const Worker = mongoose.model("Worker", workerSchema);
+
 export default Worker;

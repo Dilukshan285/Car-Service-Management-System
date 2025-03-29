@@ -80,7 +80,7 @@ const createAppointment = async (req, res) => {
       appointmentTime,
       notes: notes || "",
       user: userName,
-      userId: req.user.id, // Set the userId field
+      userId: req.user.id,
       isAcceptedByWorker: false,
     });
 
@@ -118,10 +118,59 @@ const getAppointments = async (req, res) => {
   }
 };
 
+// New function to get a single appointment by ID
+const getAppointmentById = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+
+    if (!appointmentId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid appointment ID format",
+      });
+    }
+
+    const appointment = await Appointment.findById(appointmentId)
+      .populate("worker", "fullName email phoneNumber primarySpecialization")
+      .populate("userId", "first_name last_name email");
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
+    // Ensure the authenticated user is either the worker assigned to the appointment or the user who created it
+    const workerId = req.user?.id;
+    const userId = req.user?.id;
+    if (
+      appointment.worker?._id.toString() !== workerId &&
+      appointment.userId?._id.toString() !== userId
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized: You do not have access to this appointment",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: appointment,
+    });
+  } catch (error) {
+    console.error("Error in getAppointmentById:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 const updateAppointment = async (req, res) => {
   try {
     const { appointmentId } = req.params;
-    const { make, model, year, carNumberPlate, mileage, serviceType, appointmentDate, appointmentTime, notes, status, isAcceptedByWorker } = req.body;
+    const { make, model, year, carNumberPlate, mileage, serviceType, appointmentDate, appointmentTime, notes, status, isAcceptedByWorker, checklist, additionalIssues } = req.body;
 
     if (!appointmentId.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({
@@ -175,6 +224,8 @@ const updateAppointment = async (req, res) => {
         notes: notes !== undefined ? notes : existingAppointment.notes,
         status: status || existingAppointment.status,
         isAcceptedByWorker: isAcceptedByWorker !== undefined ? isAcceptedByWorker : existingAppointment.isAcceptedByWorker,
+        checklist: checklist || existingAppointment.checklist,
+        additionalIssues: additionalIssues !== undefined ? additionalIssues : existingAppointment.additionalIssues,
       },
       { new: true, runValidators: true }
     );
@@ -277,7 +328,7 @@ const assignWorkerToAppointment = async (req, res) => {
     }
 
     appointment.worker = worker._id;
-    appointment.status = "Confirmed"; // Keep as Confirmed until worker accepts
+    appointment.status = "Confirmed";
     appointment.isAcceptedByWorker = false;
     const updatedAppointment = await appointment.save();
 
@@ -334,7 +385,6 @@ const unassignWorkerFromAppointment = async (req, res) => {
       });
     }
 
-    // Update the appointment using findByIdAndUpdate to avoid full validation
     const updatedAppointment = await Appointment.findByIdAndUpdate(
       appointmentId,
       {
@@ -367,7 +417,6 @@ const unassignWorkerFromAppointment = async (req, res) => {
   }
 };
 
-// New function to handle accepting a service
 const acceptService = async (req, res) => {
   try {
     const { appointmentId } = req.params;
@@ -459,4 +508,5 @@ export default {
   assignWorkerToAppointment,
   unassignWorkerFromAppointment,
   acceptService,
+  getAppointmentById, // Export the new function
 };

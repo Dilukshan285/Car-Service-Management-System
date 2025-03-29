@@ -87,6 +87,16 @@ const appointmentSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    checklist: {
+      type: Map,
+      of: Boolean,
+      default: {},
+    },
+    additionalIssues: {
+      type: String,
+      trim: true,
+      default: "",
+    },
   },
   { timestamps: true }
 );
