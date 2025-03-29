@@ -80,7 +80,8 @@ const createAppointment = async (req, res) => {
       appointmentTime,
       notes: notes || "",
       user: userName,
-      isAcceptedByWorker: false, // Initialize as false
+      userId: req.user.id, // Set the userId field
+      isAcceptedByWorker: false,
     });
 
     const savedAppointment = await newAppointment.save();
@@ -276,8 +277,8 @@ const assignWorkerToAppointment = async (req, res) => {
     }
 
     appointment.worker = worker._id;
-    appointment.status = "In Progress";
-    appointment.isAcceptedByWorker = false; // Ensure this is false until the worker accepts
+    appointment.status = "Confirmed"; // Keep as Confirmed until worker accepts
+    appointment.isAcceptedByWorker = false;
     const updatedAppointment = await appointment.save();
 
     if (!worker.tasks.includes(appointmentId)) {
@@ -333,10 +334,16 @@ const unassignWorkerFromAppointment = async (req, res) => {
       });
     }
 
-    appointment.worker = null;
-    appointment.isAcceptedByWorker = false; // Reset on unassign
-    appointment.status = "Confirmed"; // Reset status to Confirmed
-    await appointment.save();
+    // Update the appointment using findByIdAndUpdate to avoid full validation
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+      appointmentId,
+      {
+        worker: null,
+        isAcceptedByWorker: false,
+        status: "Confirmed",
+      },
+      { new: true }
+    );
 
     const worker = await Worker.findById(workerId);
     worker.tasks = worker.tasks.filter((taskId) => taskId.toString() !== appointmentId);
@@ -349,9 +356,10 @@ const unassignWorkerFromAppointment = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Worker unassigned from appointment successfully",
-      data: appointment,
+      data: updatedAppointment,
     });
   } catch (error) {
+    console.error("Error in unassignWorkerFromAppointment:", error);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -415,13 +423,40 @@ const acceptService = async (req, res) => {
   }
 };
 
+const getMyAppointments = async (req, res) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: User information not found",
+      });
+    }
+
+    const appointments = await Appointment.find({ userId: req.user.id })
+      .populate("worker", "fullName")
+      .sort({ appointmentDate: -1, appointmentTime: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: appointments,
+    });
+  } catch (error) {
+    console.error("Error in getMyAppointments:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export default {
   checkAuth,
   createAppointment,
   getAppointments,
+  getMyAppointments,
   updateAppointment,
   deleteAppointment,
   assignWorkerToAppointment,
   unassignWorkerFromAppointment,
-  acceptService, // Export the new function
+  acceptService,
 };

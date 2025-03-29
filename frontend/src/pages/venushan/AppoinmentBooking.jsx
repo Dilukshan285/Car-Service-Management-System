@@ -91,7 +91,7 @@ const BookingForm = () => {
       console.log("Booking response:", data);
 
       if (response.ok && data.success) {
-        navigate("/");
+        navigate("/my-bookings");
       } else {
         throw new Error(data.message || "Failed to book appointment");
       }
