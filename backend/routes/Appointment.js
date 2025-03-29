@@ -7,6 +7,7 @@ const router = Router();
 router.post("/book", verifyToken,AppointmentController.createAppointment);
 router.get("/check", verifyToken, AppointmentController.checkAuth);
 router.get("/", AppointmentController.getAppointments);
+router.get("/my-appointments", verifyToken, AppointmentController.getMyAppointments);
 router.put("/update/:appointmentId", AppointmentController.updateAppointment);
 router.delete("/delete/:appointmentId", AppointmentController.deleteAppointment);
 router.put("/assign-worker/:appointmentId", AppointmentController.assignWorkerToAppointment);

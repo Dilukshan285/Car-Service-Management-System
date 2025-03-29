@@ -68,6 +68,11 @@ const appointmentSchema = new Schema(
       type: String,
       required: [true, "User name is required"],
     },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "Usermodel",
+      required: [true, "User ID is required"], // Now required
+    },
     worker: {
       type: Schema.Types.ObjectId,
       ref: "Worker",
@@ -80,7 +85,7 @@ const appointmentSchema = new Schema(
     },
     isAcceptedByWorker: {
       type: Boolean,
-      default: false, // New field to track if the worker has accepted the service
+      default: false,
     },
   },
   { timestamps: true }

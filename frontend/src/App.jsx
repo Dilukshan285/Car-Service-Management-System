@@ -33,6 +33,7 @@ import ServiceDetails from "./pages/venushan/ServiceDetails.jsx";
 import AboutUs from "./pages/venushan/Aboutuspage.jsx";
 import ImageUploadForm from "./pages/venushan/AppoinmentBookingimg.jsx";
 import BookingForm from "./pages/venushan/AppoinmentBooking.jsx";
+import MyAppointments from './pages/venushan/MyAppointments.jsx';
 
 // Raagul Gananathan's வேர்
 import ProductTable from './pages/Raagul/ProductTable.jsx';
@@ -112,6 +113,7 @@ function AppWrapper() {
           {/* Venushan's Routes */}
           <Route path="/booking" element={<BookingForm />} />
           <Route path="/AI" element={<ImageUploadForm />} />
+          <Route path="/my-bookings" element={<MyAppointments />} />
         </Routes>
       </main>
     </div>
