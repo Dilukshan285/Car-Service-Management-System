@@ -149,15 +149,6 @@ export default function Header() {
                 About
               </Link>
             </li>
-            <li>
-              <Link
-                className="hover:text-blue-300 transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-sm px-2 py-1"
-                to="/contact"
-                aria-label="Contact Us"
-              >
-                Contact Us
-              </Link>
-            </li>
           </ul>
         </nav>
 
