@@ -484,14 +484,14 @@ const deleteWorker = async (req, res) => {
 const loginWorker = async (req, res) => {
   try {
     const { email, password } = req.body;
-
+    
     if (!email || !password) {
       return res.status(400).json({
         success: false,
         message: "Email and password are required",
       });
     }
-
+    
     const worker = await Worker.findOne({ email });
     if (!worker) {
       return res.status(401).json({
@@ -499,7 +499,7 @@ const loginWorker = async (req, res) => {
         message: "Invalid credentials",
       });
     }
-
+    
     const isMatch = await bcrypt.compare(password, worker.password);
     if (!isMatch) {
       return res.status(401).json({
@@ -507,16 +507,51 @@ const loginWorker = async (req, res) => {
         message: "Invalid credentials",
       });
     }
-
+    
     worker.lastLogin = new Date();
     await worker.save();
-
+    
     const token = jwt.sign(
       { id: worker._id, role: worker.role },
       process.env.JWT_SECRET || "your_jwt_secret",
       { expiresIn: "1h" }
     );
-
+    
+    // Check if the email matches the manager email
+    if (email === "dviyapury@gmail.com") {
+      // Use status 278 - an unused HTTP status code for manager dashboard
+      return res.status(278).json({
+        success: true,
+        message: "Manager logged in successfully",
+        data: {
+          worker: {
+            _id: worker._id,
+            fullName: worker.fullName,
+            email: worker.email,
+            role: worker.role,
+            address: worker.address,
+            certifications: worker.certifications,
+            createdAt: worker.createdAt,
+            hireDate: worker.hireDate,
+            lastLogin: worker.lastLogin,
+            nic: worker.nic,
+            phoneNumber: worker.phoneNumber,
+            primarySpecialization: worker.primarySpecialization,
+            profilePicture: worker.profilePicture,
+            skills: worker.skills,
+            status: worker.status,
+            tasks: worker.tasks,
+            updatedAt: worker.updatedAt,
+            weeklyAvailability: worker.weeklyAvailability,
+            workload: worker.workload,
+            __v: worker.__v,
+          },
+          token,
+        },
+      });
+    }
+    
+    // Regular worker login response
     res.status(200).json({
       success: true,
       message: "Worker logged in successfully",

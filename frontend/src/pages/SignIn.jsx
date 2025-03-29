@@ -86,7 +86,7 @@ const SignIn = () => {
     e.preventDefault();
     const requiredFields = ["email", "password"];
     let newErrors = {};
-
+  
     requiredFields.forEach((field) => {
       if (!formData[field]) {
         newErrors[field] = `${
@@ -94,46 +94,69 @@ const SignIn = () => {
         } is required`;
       }
     });
-
+  
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       toast.error("Please fill out all required fields.");
       return;
     }
-
+  
     try {
       if (role === "user") {
         dispatch(signInStart());
       } else {
         dispatch(loginWorkerStart());
       }
-
+  
       const endpoint =
         role === "user"
           ? `${apiURL}/api/user/signin`
           : `${apiURL}/api/workers/login`;
-
+  
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
         credentials: "include",
       });
-
+  
+      // Check for manager status code (278)
+      if (res.status === 278) {
+        const data = await res.json();
+        console.log("Manager sign-in response:", data);
+        
+        // Extract token from response
+        const token = data.token || data.data?.token;
+        if (!token) {
+          throw new Error("Authentication token missing in response");
+        }
+        
+        // Store token in localStorage
+        localStorage.setItem("access_token", token);
+        console.log("Manager token stored in localStorage:", token);
+        
+        // Dispatch worker login success
+        dispatch(loginWorkerSuccess(data.data.worker));
+        
+        // Navigate to manager dashboard
+        navigate("/manager_dashboard");
+        return;
+      }
+  
       const data = await res.json();
       console.log("Sign-in response:", data);
-
+  
       if (res.ok) {
         // Extract token from response
         const token = data.token || data.data?.token;
         if (!token) {
           throw new Error("Authentication token missing in response");
         }
-
+  
         // Store token in localStorage
         localStorage.setItem("access_token", token);
         console.log("Token stored in localStorage:", token);
-
+  
         // Dispatch success action based on role
         if (role === "user") {
           dispatch(signInSuccess(data));

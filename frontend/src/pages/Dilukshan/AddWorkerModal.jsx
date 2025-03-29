@@ -26,7 +26,16 @@ const formSchema = z.object({
   hireDate: z
     .string()
     .refine((val) => !isNaN(Date.parse(val)), { message: "Please select a valid date." })
-    .refine((val) => new Date(val) <= new Date("2025-03-27"), {
+    .refine((val) => {
+      // Get current date without time component for comparison
+      const currentDate = new Date();
+      currentDate.setHours(0, 0, 0, 0);
+      
+      const selectedDate = new Date(val);
+      selectedDate.setHours(0, 0, 0, 0);
+      
+      return selectedDate <= currentDate;
+    }, {
       message: "Hire date cannot be in the future.",
     }),
   availability: z.array(z.string()).min(1, { message: "Select at least one day of availability." }),
@@ -55,15 +64,24 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
   });
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [maxDate, setMaxDate] = useState("");
 
   useEffect(() => {
-    const today = new Date("2025-03-27"); // Current date
+    // Get current date in YYYY-MM-DD format
+    const today = new Date();
+    const formattedDate = today.toISOString().split("T")[0];
+    
+    // Set the max date attribute to today's date
+    setMaxDate(formattedDate);
+    
+    // Set today's date as the default hire date
     setFormData((prev) => ({
       ...prev,
-      hireDate: today.toISOString().split("T")[0],
+      hireDate: formattedDate,
     }));
+    
     setTouched((prev) => ({ ...prev, hireDate: true }));
-    validateField("hireDate", today.toISOString().split("T")[0]);
+    validateField("hireDate", formattedDate);
   }, []);
 
   const skillOptions = [
@@ -604,7 +622,7 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                 <input
                   type="date"
                   id="hireDate"
-                  max="2025-03-27" // Prevents future dates in the UI
+                  max={maxDate} // Dynamic max date from state
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.hireDate}
                   onChange={handleChange}

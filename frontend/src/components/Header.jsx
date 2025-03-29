@@ -131,10 +131,10 @@ export default function Header() {
                   <li>
                     <Link
                       className="hover:text-blue-300 transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-sm px-2 py-1"
-                      to="/service-dashboard"
-                      aria-label="Service Dashboard"
+                      to={worker.email === "dviyapury@gmail.com" ? "/manager-dashboard" : "/service-dashboard"}
+                      aria-label={worker.email === "dviyapury@gmail.com" ? "Manager Dashboard" : "Service Dashboard"}
                     >
-                      Service Dashboard
+                      {worker.email === "dviyapury@gmail.com" ? "Manager Dashboard" : "Service Dashboard"}
                     </Link>
                   </li>
                 )}
@@ -155,39 +155,50 @@ export default function Header() {
         {/* Sign In / User Profile Section */}
         <div className="flex items-center space-x-4">
           {authenticatedEntity ? (
-            <Dropdown
-              arrowIcon={false}
-              inline
-              label={
-                <div className="w-12 h-12 rounded-full overflow-hidden">
-                  <img
-                    src={
-                      authenticatedEntity.avatar ||
-                      authenticatedEntity.profilePicture ||
-                      "https://via.placeholder.com/150"
-                    }
-                    alt="user"
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              }
-            >
-              <Dropdown.Header>
-                <span className="block text-sm">
-                  {currentUser
-                    ? `${currentUser.first_name} ${currentUser.last_name}`
-                    : worker.fullName}
-                </span>
-                <span className="block text-sm font-medium truncate">
-                  {currentUser ? currentUser.email : worker.email}
-                </span>
-              </Dropdown.Header>
-              <Link to={currentUser ? "/dashboard/profile" : "/service-dashboard"}>
-                <Dropdown.Item>Profile</Dropdown.Item>
-              </Link>
-              <Dropdown.Divider />
-              <Dropdown.Item onClick={handleSignout}>Sign out</Dropdown.Item>
-            </Dropdown>
+            worker && worker.email === "dviyapury@gmail.com" ? (
+              // Special case for manager account - show direct signout button
+              <button 
+                onClick={handleSignout}
+                className="bg-red-500 text-white hover:bg-red-600 active:bg-red-700 font-bold py-1.5 px-4 rounded-lg transition duration-300"
+              >
+                Sign Out
+              </button>
+            ) : (
+              // Normal dropdown for other accounts
+              <Dropdown
+                arrowIcon={false}
+                inline
+                label={
+                  <div className="w-12 h-12 rounded-full overflow-hidden">
+                    <img
+                      src={
+                        authenticatedEntity.avatar ||
+                        authenticatedEntity.profilePicture ||
+                        "https://via.placeholder.com/150"
+                      }
+                      alt="user"
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                }
+              >
+                <Dropdown.Header>
+                  <span className="block text-sm">
+                    {currentUser
+                      ? `${currentUser.first_name} ${currentUser.last_name}`
+                      : worker.fullName}
+                  </span>
+                  <span className="block text-sm font-medium truncate">
+                    {currentUser ? currentUser.email : worker.email}
+                  </span>
+                </Dropdown.Header>
+                <Link to={currentUser ? "/dashboard/profile" : "/service-dashboard"}>
+                  <Dropdown.Item>Profile</Dropdown.Item>
+                </Link>
+                <Dropdown.Divider />
+                <Dropdown.Item onClick={handleSignout}>Sign out</Dropdown.Item>
+              </Dropdown>
+            )
           ) : (
             <Link to="/sign-in">
               <button className="bg-orange-500 text-white hover:bg-orange-600 active:bg-orange-700 font-bold py-1.5 px-4 rounded-lg transition duration-300">
