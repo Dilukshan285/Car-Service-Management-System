@@ -7,16 +7,26 @@ const ServiceCard = ({ appointment }) => {
   const [isAccepted, setIsAccepted] = useState(appointment.isAcceptedByWorker || false);
 
   const handleAcceptService = async () => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      toast.error("Authentication token missing. Please sign in again.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      navigate("/sign-in");
+      return;
+    }
+
     try {
-      // Create a promise for the API call
+      // Create a promise for the API call with token in Authorization header
       const acceptServicePromise = fetch(
         `http://localhost:5000/api/appointments/accept-service/${appointment.id}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
-          credentials: "include",
         }
       ).then(async (response) => {
         if (!response.ok) {
@@ -71,20 +81,41 @@ const ServiceCard = ({ appointment }) => {
         state: { ...appointment, status: "In Progress", isAcceptedByWorker: true },
       });
     } catch (error) {
-      toast.error("Error accepting service: " + error.message, {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        theme: "light",
-      });
+      // Handle token expiration or authentication errors
+      if (error.message.includes("401")) {
+        localStorage.removeItem("access_token");
+        toast.error("Authentication expired. Please sign in again.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        navigate("/sign-in");
+      } else {
+        toast.error("Error accepting service: " + error.message, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: "light",
+        });
+      }
       console.error("Accept service error:", error);
     }
   };
 
   const handleViewProgress = () => {
+    // Check for token before navigating
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      toast.error("Authentication token missing. Please sign in again.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      navigate("/sign-in");
+      return;
+    }
+    
     // Navigate to the service details page when "View Progress" is clicked
     navigate(`/service-details/${appointment.carNumberPlate}`, {
       state: { ...appointment, status: "In Progress", isAcceptedByWorker: true },

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import WorkerController from "../controller/Worker.js"; // Middleware to verify JWT
+import WorkerController from "../controller/Worker.js";
 import verifyToken from "../middleware/verifyToken.js";
 
 const router = Router();
@@ -11,6 +11,6 @@ router.put("/update/:workerId", WorkerController.updateWorker);
 router.post("/login", WorkerController.loginWorker);
 router.get("/schedule", verifyToken, WorkerController.getCurrentSchedule);
 router.post("/signout", verifyToken, WorkerController.signoutWorker);
-
+router.put("/update-service/:appointmentId", verifyToken, WorkerController.updateServiceProgress);
 
 export default router;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { signoutSuccess } from "../../redux/user/userSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { logoutWorker, loginWorkerSuccess } from "../../redux/user/workerSlice.js";
 import { toast } from "react-toastify";
 import ServiceCard from "./ServiceCard";
 
@@ -12,36 +12,97 @@ const ServiceDashboard = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { worker } = useSelector((state) => state.worker);
+
+  // Fetch worker details if token exists but worker is null
+  useEffect(() => {
+    const fetchWorkerDetails = async () => {
+      const token = localStorage.getItem("access_token");
+      if (!worker && token) {
+        try {
+          const response = await fetch("http://localhost:5000/api/workers/schedule", {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const data = await response.json();
+          if (response.ok && data.success) {
+            dispatch(loginWorkerSuccess(data.data.worker));
+            setWorkerName(data.data.worker.fullName);
+          } else {
+            throw new Error(data.message || "Failed to fetch worker details");
+          }
+        } catch (err) {
+          console.error("Error fetching worker details:", err);
+          localStorage.removeItem("access_token");
+          navigate("/sign-in");
+        }
+      } else if (!worker && !token) {
+        console.log("No worker or token, redirecting to sign-in");
+        navigate("/sign-in");
+      } else {
+        setWorkerName(worker.fullName);
+      }
+    };
+
+    fetchWorkerDetails();
+  }, [worker, dispatch, navigate]);
 
   const handleSignOut = async () => {
+    const token = localStorage.getItem("access_token");
     try {
       const response = await fetch("http://localhost:5000/api/workers/signout", {
         method: "POST",
-        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // Include the token in the Authorization header
+        },
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        dispatch(signoutSuccess());
-        localStorage.removeItem("user");
-        // Clear all toasts before navigating
-        toast.dismiss(); // Dismiss all active toasts
+        dispatch(logoutWorker());
+        localStorage.removeItem("access_token");
+        toast.dismiss();
         navigate("/sign-in");
       } else {
         console.error("Signout failed:", data.message);
+        // Even if the backend request fails, clear localStorage and redirect
+        dispatch(logoutWorker());
+        localStorage.removeItem("access_token");
+        toast.dismiss();
+        navigate("/sign-in");
       }
     } catch (err) {
       console.error("Signout error:", err);
+      // Clear localStorage and redirect even if there's an error
+      dispatch(logoutWorker());
+      localStorage.removeItem("access_token");
+      toast.dismiss();
+      navigate("/sign-in");
     }
   };
 
   useEffect(() => {
     const fetchSchedule = async () => {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        setError("Authentication token missing. Please sign in again.");
+        setLoading(false);
+        navigate("/sign-in");
+        return;
+      }
+
       try {
         const response = await fetch("http://localhost:5000/api/workers/schedule", {
           method: "GET",
-          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         });
 
         const data = await response.json();
@@ -54,7 +115,6 @@ const ServiceDashboard = () => {
 
           console.log("Mapped Services:", mappedServices);
           setServices(mappedServices);
-          setWorkerName(data.data.worker.fullName);
         } else {
           setError(data.message || "Failed to fetch schedule");
         }
@@ -82,6 +142,10 @@ const ServiceDashboard = () => {
         <p className="text-red-600">{error}</p>
       </div>
     );
+  }
+
+  if (!worker) {
+    return null;
   }
 
   return (

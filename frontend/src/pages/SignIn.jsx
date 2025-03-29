@@ -9,8 +9,14 @@ import {
   signInStart,
   signInSuccess,
   signInFailure,
-  resetLoadingState,
+  resetLoadingState as resetUserLoadingState,
 } from "../redux/user/userSlice.js";
+import {
+  loginWorkerStart,
+  loginWorkerSuccess,
+  loginWorkerFailure,
+  resetLoadingState as resetWorkerLoadingState,
+} from "../redux/user/workerSlice.js";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import OAuth from "../components/OAuth.jsx";
@@ -44,12 +50,17 @@ const SignIn = () => {
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
   const [role, setRole] = useState("user");
-  const { loading } = useSelector((state) => state.user);
+
+  const { loading: userLoading } = useSelector((state) => state.user);
+  const { loading: workerLoading, worker } = useSelector((state) => state.worker); // Use `worker` instead of `currentWorker`
+  const loading = role === "user" ? userLoading : workerLoading;
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   useEffect(() => {
-    dispatch(resetLoadingState());
+    dispatch(resetUserLoadingState());
+    dispatch(resetWorkerLoadingState());
   }, [dispatch]);
 
   const handleChange = (e) => {
@@ -91,7 +102,11 @@ const SignIn = () => {
     }
 
     try {
-      dispatch(signInStart());
+      if (role === "user") {
+        dispatch(signInStart());
+      } else {
+        dispatch(loginWorkerStart());
+      }
 
       const endpoint =
         role === "user"
@@ -106,31 +121,45 @@ const SignIn = () => {
       });
 
       const data = await res.json();
-      console.log("Sign-in response:", data); // Debug log
+      console.log("Sign-in response:", data);
 
       if (res.ok) {
-        // Assuming data contains the token in data.token or similar
+        // Extract token from response
         const token = data.token || data.data?.token;
-        if (token) {
-          localStorage.setItem("access_token", token); // Store token in localStorage
-          console.log("Token stored in localStorage:", token);
-        } else {
-          console.warn("No token found in response:", data);
+        if (!token) {
+          throw new Error("Authentication token missing in response");
         }
-        dispatch(signInSuccess(data));
+
+        // Store token in localStorage
+        localStorage.setItem("access_token", token);
+        console.log("Token stored in localStorage:", token);
+
+        // Dispatch success action based on role
         if (role === "user") {
-          navigate("/"); // User dashboard
+          dispatch(signInSuccess(data));
+          navigate("/");
         } else {
-          navigate("/service-dashboard"); // Worker dashboard
+          dispatch(loginWorkerSuccess(data.data.worker));
+          navigate("/service-dashboard");
         }
       } else {
         toast.error(data.message || "Invalid credentials. Please try again.");
-        dispatch(resetLoadingState());
+        if (role === "user") {
+          dispatch(resetUserLoadingState());
+        } else {
+          dispatch(resetWorkerLoadingState());
+        }
       }
     } catch (error) {
       console.error("Error during API call:", error);
-      dispatch(signInFailure("Failed to sign in"));
-      dispatch(resetLoadingState());
+      toast.error(error.message || "Failed to sign in");
+      if (role === "user") {
+        dispatch(signInFailure(error.message || "Failed to sign in"));
+        dispatch(resetUserLoadingState());
+      } else {
+        dispatch(loginWorkerFailure(error.message || "Failed to sign in"));
+        dispatch(resetWorkerLoadingState());
+      }
     }
   };
 

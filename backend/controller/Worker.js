@@ -5,6 +5,7 @@ import sharp from "sharp";
 import { hashSync, compareSync } from "bcrypt";
 import sendMail from "../middleware/sendMail.js";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
 const storage = memoryStorage();
 const upload = multer({ storage }).single("profilePicture");
@@ -480,36 +481,30 @@ const deleteWorker = async (req, res) => {
   }
 };
 
-// Worker Login
 const loginWorker = async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({
-      success: false,
-      message: "Email and password are required",
-    });
-  }
-
   try {
-    const normalizedEmail = email.toLowerCase();
-    const worker = await Worker.findOne({ email: normalizedEmail }).populate({
-      path: "tasks",
-      select: "make model year carNumberPlate mileage serviceType appointmentDate appointmentTime notes user status",
-    });
+    const { email, password } = req.body;
 
-    if (!worker) {
-      return res.status(404).json({
+    if (!email || !password) {
+      return res.status(400).json({
         success: false,
-        message: "Invalid email or password",
+        message: "Email and password are required",
       });
     }
 
-    const isPasswordValid = compareSync(password, worker.password);
-    if (!isPasswordValid) {
+    const worker = await Worker.findOne({ email });
+    if (!worker) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password",
+        message: "Invalid credentials",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, worker.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
       });
     }
 
@@ -517,28 +512,45 @@ const loginWorker = async (req, res) => {
     await worker.save();
 
     const token = jwt.sign(
-      { id: worker._id, email: worker.email, role: "worker" },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      { id: worker._id, role: worker.role },
+      process.env.JWT_SECRET || "your_jwt_secret",
+      { expiresIn: "1h" }
     );
-
-    const { password: pass, ...workerData } = worker._doc;
-
-    res.cookie("access_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    });
 
     res.status(200).json({
       success: true,
       message: "Worker logged in successfully",
-      data: workerData,
+      data: {
+        worker: {
+          _id: worker._id,
+          fullName: worker.fullName,
+          email: worker.email,
+          role: worker.role,
+          address: worker.address,
+          certifications: worker.certifications,
+          createdAt: worker.createdAt,
+          hireDate: worker.hireDate,
+          lastLogin: worker.lastLogin,
+          nic: worker.nic,
+          phoneNumber: worker.phoneNumber,
+          primarySpecialization: worker.primarySpecialization,
+          profilePicture: worker.profilePicture,
+          skills: worker.skills,
+          status: worker.status,
+          tasks: worker.tasks,
+          updatedAt: worker.updatedAt,
+          weeklyAvailability: worker.weeklyAvailability,
+          workload: worker.workload,
+          __v: worker.__v,
+        },
+        token,
+      },
     });
   } catch (error) {
-    console.error("Worker Login Error:", error);
+    console.error("Error in loginWorker:", error);
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Server error",
     });
   }
 };
@@ -557,7 +569,7 @@ const getCurrentSchedule = async (req, res) => {
 
     const worker = await Worker.findById(workerId).populate({
       path: "tasks",
-      select: "make model year carNumberPlate mileage serviceType appointmentDate appointmentTime notes user status isAcceptedByWorker",
+      select: "make model year carNumberPlate mileage serviceType appointmentDate appointmentTime notes user status isAcceptedByWorker checklist additionalIssues",
       match: {
         appointmentDate: { $gte: new Date() },
         status: { $ne: "Cancelled" },
@@ -587,6 +599,8 @@ const getCurrentSchedule = async (req, res) => {
       status: task.status,
       fullDateTime: task.appointmentDateTime,
       isAcceptedByWorker: task.isAcceptedByWorker || false,
+      checklist: task.checklist || {},
+      additionalIssues: task.additionalIssues || "",
     }));
 
     res.status(200).json({
@@ -613,16 +627,74 @@ const getCurrentSchedule = async (req, res) => {
 // Sign out worker
 const signoutWorker = async (req, res) => {
   try {
-    res.clearCookie("access_token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    });
-
+    // Since the token is stored in localStorage on the frontend, there's no cookie to clear
+    // Simply return a success response
     res.status(200).json({
       success: true,
       message: "Worker logged out successfully",
     });
   } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Update service progress
+const updateServiceProgress = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const { checklist, additionalIssues } = req.body;
+
+    if (!appointmentId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid appointment ID format",
+      });
+    }
+
+    const appointment = await Appointment.findById(appointmentId);
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
+    // Ensure the authenticated worker is the one assigned to the appointment
+    const workerId = req.user?.id;
+    if (!workerId || appointment.worker?.toString() !== workerId) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized: You are not assigned to this appointment",
+      });
+    }
+
+    if (appointment.status !== "In Progress") {
+      return res.status(400).json({
+        success: false,
+        message: "Service can only be updated if the appointment is In Progress",
+      });
+    }
+
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+      appointmentId,
+      {
+        checklist: checklist || appointment.checklist || {},
+        additionalIssues: additionalIssues !== undefined ? additionalIssues : appointment.additionalIssues || "",
+        updatedAt: new Date(),
+      },
+      { new: true, runValidators: true }
+    ).populate("worker", "fullName email phoneNumber primarySpecialization");
+
+    res.status(200).json({
+      success: true,
+      message: "Service progress updated successfully",
+      data: updatedAppointment,
+    });
+  } catch (error) {
+    console.error("Update Service Progress Error:", error);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -638,4 +710,5 @@ export default {
   loginWorker,
   getCurrentSchedule,
   signoutWorker,
+  updateServiceProgress,
 };
