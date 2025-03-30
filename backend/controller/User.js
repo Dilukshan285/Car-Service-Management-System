@@ -215,6 +215,7 @@ const signin = async (req, res, next) => {
     res.cookie("access_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
+      sameSite: "strict"
     });
 
     console.log("Response Data:", rest);
