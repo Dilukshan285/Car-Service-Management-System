@@ -13,6 +13,7 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [touched, setTouched] = useState({}); // Track which fields have been interacted with
 
   // Populate form data when editing a product
   useEffect(() => {
@@ -25,6 +26,16 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
         stockQuantity: editingProduct.stock !== undefined ? editingProduct.stock : 0,
         sellerName: editingProduct.seller || "",
         productImages: null, // Reset image field for editing
+      });
+      // When editing, assume all fields are touched to show errors immediately if any
+      setTouched({
+        productName: true,
+        description: true,
+        price: true,
+        category: true,
+        stockQuantity: true,
+        sellerName: true,
+        productImages: false, // Image field starts untouched
       });
     }
   }, [editingProduct]);
@@ -56,20 +67,22 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
     }
   };
 
-  // Handle input changes
+  // Handle input changes with live validation
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    setTouched((prev) => ({ ...prev, [name]: true })); // Mark field as touched
 
-    // Clear error for the field being edited
+    // Validate field immediately
     const error = validateForm(name, value);
     setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
-  // Handle image upload
+  // Handle image upload with live validation
   const handleImageUpload = (e) => {
     const file = e.target.files[0] || null;
     setFormData({ ...formData, productImages: file });
+    setTouched((prev) => ({ ...prev, productImages: true })); // Mark image field as touched
 
     // Validate image field
     const error = validateForm("productImages", file);
@@ -104,6 +117,16 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
     });
 
     setErrors(currentErrors);
+    setTouched((prev) => ({
+      ...prev,
+      productName: true,
+      description: true,
+      price: true,
+      category: true,
+      stockQuantity: true,
+      sellerName: true,
+      productImages: true,
+    })); // Mark all fields as touched on submit
 
     if (isFieldEmpty) {
       return toast.error("Please fill out all required fields.");
@@ -173,10 +196,16 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
             name="productName"
             value={formData.productName}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
+              touched.productName && errors.productName
+                ? "border-red-500 focus:ring-red-500"
+                : "border-gray-300 focus:ring-blue-500"
+            }`}
             placeholder="Enter product name"
           />
-          {errors.productName && <p className="text-red-500 text-sm mt-1">{errors.productName}</p>}
+          {touched.productName && errors.productName && (
+            <p className="text-red-500 text-sm mt-1">{errors.productName}</p>
+          )}
         </div>
 
         <div className="mb-4">
@@ -185,11 +214,17 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
             name="description"
             value={formData.description}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
+              touched.description && errors.description
+                ? "border-red-500 focus:ring-red-500"
+                : "border-gray-300 focus:ring-blue-500"
+            }`}
             placeholder="Enter product description"
             rows="4"
           ></textarea>
-          {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
+          {touched.description && errors.description && (
+            <p className="text-red-500 text-sm mt-1">{errors.description}</p>
+          )}
         </div>
 
         <div className="mb-4 flex items-center space-x-4">
@@ -200,12 +235,18 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
               name="price"
               value={formData.price}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
+                touched.price && errors.price
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:ring-blue-500"
+              }`}
               placeholder="Enter price"
               min="0"
-              step="0.01"
+              step="1"
             />
-            {errors.price && <p className="text-red-500 text-sm mt-1">{errors.price}</p>}
+            {touched.price && errors.price && (
+              <p className="text-red-500 text-sm mt-1">{errors.price}</p>
+            )}
           </div>
           <div className="w-1/2">
             <label className="block text-gray-700 font-medium mb-1">Stock Quantity</label>
@@ -214,11 +255,15 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
               name="stockQuantity"
               value={formData.stockQuantity}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
+                touched.stockQuantity && errors.stockQuantity
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:ring-blue-500"
+              }`}
               placeholder="Enter stock quantity"
               min="0"
             />
-            {errors.stockQuantity && (
+            {touched.stockQuantity && errors.stockQuantity && (
               <p className="text-red-500 text-sm mt-1">{errors.stockQuantity}</p>
             )}
           </div>
@@ -230,7 +275,11 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
             name="category"
             value={formData.category}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
+              touched.category && errors.category
+                ? "border-red-500 focus:ring-red-500"
+                : "border-gray-300 focus:ring-blue-500"
+            }`}
           >
             <option value="">Select category</option>
             <option value="Brakes">Brakes</option>
@@ -240,7 +289,9 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
             <option value="Electrical">Electrical</option>
             <option value="Suspension">Suspension</option>
           </select>
-          {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
+          {touched.category && errors.category && (
+            <p className="text-red-500 text-sm mt-1">{errors.category}</p>
+          )}
         </div>
 
         <div className="mb-4">
@@ -250,10 +301,16 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
             name="sellerName"
             value={formData.sellerName}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
+              touched.sellerName && errors.sellerName
+                ? "border-red-500 focus:ring-red-500"
+                : "border-gray-300 focus:ring-blue-500"
+            }`}
             placeholder="Enter seller name"
           />
-          {errors.sellerName && <p className="text-red-500 text-sm mt-1">{errors.sellerName}</p>}
+          {touched.sellerName && errors.sellerName && (
+            <p className="text-red-500 text-sm mt-1">{errors.sellerName}</p>
+          )}
         </div>
 
         <div className="mb-4">
@@ -263,14 +320,18 @@ const AddProduct = ({ onCancel, onAddProduct, editingProduct }) => {
             name="productImages"
             onChange={handleImageUpload}
             accept="image/*"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
+              touched.productImages && errors.productImages
+                ? "border-red-500 focus:ring-red-500"
+                : "border-gray-300 focus:ring-blue-500"
+            }`}
           />
           <p className="mt-2 text-sm text-gray-500">
             {editingProduct && editingProduct.images
               ? "Current image uploaded. Upload a new image to replace."
               : "No image uploaded yet. JPG, PNG, or GIF, up to 10MB."}
           </p>
-          {errors.productImages && (
+          {touched.productImages && errors.productImages && (
             <p className="text-red-500 text-sm mt-1">{errors.productImages}</p>
           )}
         </div>

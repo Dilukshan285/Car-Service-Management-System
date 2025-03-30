@@ -184,31 +184,35 @@ const CheckoutPage = () => {
   };
 
   if (!currentUser) return null;
-  if (loading) return <div className="bg-gray-100 min-h-screen p-6"><p>Loading...</p></div>;
+  if (loading) return (
+    <div className="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen p-8">
+      <p className="text-center text-gray-600 text-lg">Loading...</p>
+    </div>
+  );
 
   return (
-    <div className="bg-gray-100 min-h-screen p-6">
+    <div className="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen p-8">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-8">
         <button
           onClick={() => navigate("/cart")} // Navigate back to the Cart page
-          className="text-blue-600"
+          className="text-indigo-600 font-medium text-lg hover:text-indigo-800 transition-colors duration-300 flex items-center"
         >
-          &lt; Back to Cart
+          <span className="mr-2">←</span> Back to Cart
         </button>
-        <h1 className="text-4xl font-semibold">Checkout</h1>
+        <h1 className="text-4xl font-bold text-gray-800 tracking-tight">Checkout</h1>
       </div>
 
-      <div className="flex">
+      <div className="flex gap-8">
         {/* Shipping Form */}
-        <div className="w-3/4 bg-white p-6 rounded-lg shadow-lg">
-          <h2 className="text-2xl font-semibold mb-4">Shipping Information</h2>
-          <p className="mb-6 text-lg text-gray-600">
+        <div className="w-3/4 bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+          <h2 className="text-3xl font-semibold text-gray-900 mb-4">Shipping Information</h2>
+          <p className="mb-6 text-gray-600 text-lg">
             Complete your order by providing your shipping information
           </p>
           <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2" htmlFor="address">
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="address">
                 Address
               </label>
               <input
@@ -217,14 +221,14 @@ const CheckoutPage = () => {
                 name="address"
                 value={shippingInfo.address}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 border-gray-300"
                 placeholder="Street address"
                 required
               />
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2" htmlFor="area">
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="area">
                 Area
               </label>
               <input
@@ -233,14 +237,14 @@ const CheckoutPage = () => {
                 name="area"
                 value={shippingInfo.area}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 border-gray-300"
                 placeholder="Area"
                 required
               />
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2" htmlFor="city">
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="city">
                 City
               </label>
               <input
@@ -249,14 +253,14 @@ const CheckoutPage = () => {
                 name="city"
                 value={shippingInfo.city}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 border-gray-300"
                 placeholder="City"
                 required
               />
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2" htmlFor="postalCode">
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="postalCode">
                 Postal Code
               </label>
               <input
@@ -265,14 +269,14 @@ const CheckoutPage = () => {
                 name="postalCode"
                 value={shippingInfo.postalCode}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 border-gray-300"
                 placeholder="Postal code"
                 required
               />
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2" htmlFor="country">
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="country">
                 Country
               </label>
               <select
@@ -280,7 +284,7 @@ const CheckoutPage = () => {
                 name="country"
                 value={shippingInfo.country}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 border-gray-300 text-gray-700"
                 required
               >
                 <option value="">Select country</option>
@@ -289,8 +293,8 @@ const CheckoutPage = () => {
               </select>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2" htmlFor="state">
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="state">
                 State/Province
               </label>
               <select
@@ -298,7 +302,7 @@ const CheckoutPage = () => {
                 name="state"
                 value={shippingInfo.state}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 border-gray-300 text-gray-700"
                 required
               >
                 <option value="">Select state</option>
@@ -310,12 +314,12 @@ const CheckoutPage = () => {
               </select>
             </div>
 
-            <div className="mb-6">
-              <label className="block text-sm font-semibold mb-2" htmlFor="phone">
+            <div className="mb-8">
+              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="phone">
                 Phone Number
               </label>
               <div className="flex items-center">
-                <span className="inline-block px-4 py-2 border border-gray-300 rounded-l-lg bg-gray-100 text-gray-700">
+                <span className="inline-block px-4 py-3 border border-gray-300 rounded-l-lg bg-gray-100 text-gray-700 font-medium">
                   +94
                 </span>
                 <input
@@ -324,7 +328,7 @@ const CheckoutPage = () => {
                   name="phone"
                   value={shippingInfo.phone}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border rounded-r-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 border-gray-300"
                   placeholder="775342152"
                   required
                   maxLength="9"
@@ -334,7 +338,7 @@ const CheckoutPage = () => {
 
             <button
               type="submit"
-              className="w-full bg-black text-white py-2 rounded-lg"
+              className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-indigo-700 hover:to-blue-700 transition-all duration-300 shadow-md hover:shadow-lg"
             >
               Continue to Payment
             </button>
@@ -342,34 +346,38 @@ const CheckoutPage = () => {
         </div>
 
         {/* Order Summary */}
-        <div className="w-1/4 ml-6">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+        <div className="w-1/4">
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Order Summary</h2>
             {cartItems.length === 0 ? (
-              <p>No items in cart.</p>
+              <p className="text-gray-500">No items in cart.</p>
             ) : (
               cartItems.map((item) => (
-                <div key={item.id} className="flex justify-between mb-2">
-                  <span>{item.quantity} × {item.name}</span>
-                  <span>${(item.price * item.quantity).toFixed(2)}</span>
+                <div key={item.id} className="flex justify-between mb-3 text-gray-700">
+                  <span className="text-sm">
+                    {item.quantity} × {item.name}
+                  </span>
+                  <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))
             )}
-            <div className="flex justify-between mb-2">
-              <span>Subtotal</span>
-              <span>${calculateSubtotal()}</span>
-            </div>
-            <div className="flex justify-between mb-2">
-              <span>Shipping</span>
-              <span>${calculateShipping()}</span>
-            </div>
-            <div className="flex justify-between mb-2">
-              <span>Tax</span>
-              <span>${calculateTax()}</span>
-            </div>
-            <div className="flex justify-between mb-4">
-              <span className="font-semibold">Total</span>
-              <span className="font-semibold">${calculateTotal()}</span>
+            <div className="border-t border-gray-200 pt-4">
+              <div className="flex justify-between mb-3 text-gray-700">
+                <span>Subtotal</span>
+                <span className="font-medium">${calculateSubtotal()}</span>
+              </div>
+              <div className="flex justify-between mb-3 text-gray-700">
+                <span>Shipping</span>
+                <span className="font-medium">${calculateShipping()}</span>
+              </div>
+              <div className="flex justify-between mb-3 text-gray-700">
+                <span>Tax</span>
+                <span className="font-medium">${calculateTax()}</span>
+              </div>
+              <div className="flex justify-between mt-4 pt-4 border-t border-gray-200">
+                <span className="font-semibold text-gray-900">Total</span>
+                <span className="font-semibold text-indigo-600 text-lg">${calculateTotal()}</span>
+              </div>
             </div>
           </div>
         </div>
