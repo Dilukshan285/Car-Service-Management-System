@@ -124,7 +124,7 @@ const CartPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-4xl font-semibold">Shopping Cart</h1>
         <button
-          onClick={() => navigate('/')} // Navigate back to the product page
+          onClick={() => navigate('/accessories')} // Navigate back to the product page
           className="bg-gray-700 text-white px-4 py-2 rounded-lg"
         >
           Continue Shopping
