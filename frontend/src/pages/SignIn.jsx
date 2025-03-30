@@ -86,7 +86,7 @@ const SignIn = () => {
     e.preventDefault();
     const requiredFields = ["email", "password"];
     let newErrors = {};
-
+  
     requiredFields.forEach((field) => {
       if (!formData[field]) {
         newErrors[field] = `${
@@ -94,60 +94,83 @@ const SignIn = () => {
         } is required`;
       }
     });
-
+  
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       toast.error("Please fill out all required fields.");
       return;
     }
-
+  
     try {
       if (role === "user") {
         dispatch(signInStart());
       } else {
         dispatch(loginWorkerStart());
       }
-
+  
       const endpoint =
         role === "user"
           ? `${apiURL}/api/user/signin`
           : `${apiURL}/api/workers/login`;
-
+  
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
         credentials: "include",
       });
-
-      const data = await res.json();
-      console.log("API Response:", data);
-
+  
       // Check for manager status code (278)
       if (res.status === 278) {
+        const data = await res.json();
         console.log("Manager sign-in response:", data);
         
-        // Dispatch worker login success with manager data
-        dispatch(loginWorkerSuccess(data.data?.worker || data.worker || data));
+        // Extract token from response - check both locations
+        const token = data.token || data.data?.token;
+        if (!token) {
+          throw new Error("Authentication token missing in response");
+        }
+        
+        // Store token in localStorage
+        localStorage.setItem("access_token", token);
+        console.log("Manager token stored in localStorage:", token);
+        
+        // Dispatch worker login success
+        dispatch(loginWorkerSuccess(data.data ? data.data.worker : data));
+        
+        // Navigate to manager dashboard
         navigate("/manager_dashboard");
         return;
       }
-
+  
+      const data = await res.json();
+      console.log("Sign-in response:", data);
+  
       if (res.ok) {
-        // Handle successful login without requiring token in response body
+        // Extract token from response - more flexible token extraction
+        const token = data.token || data.data?.token;
+        if (!token) {
+          throw new Error("Authentication token missing in response");
+        }
+  
+        // Store token in localStorage
+        localStorage.setItem("access_token", token);
+        console.log("Token stored in localStorage:", token);
+  
+        // Dispatch success action based on role
         if (role === "user") {
-          dispatch(signInSuccess(data.data || data));
+          dispatch(signInSuccess(data));
           navigate("/");
         } else {
-          dispatch(loginWorkerSuccess(data.data?.worker || data.worker || data));
-          navigate("/service_dashboard");
+          dispatch(loginWorkerSuccess(data.data ? data.data.worker : data));
+          navigate("/service-dashboard");
         }
       } else {
         toast.error(data.message || "Invalid credentials. Please try again.");
         if (role === "user") {
-          dispatch(signInFailure(data.message || "Invalid credentials"));
+          dispatch(resetUserLoadingState());
         } else {
-          dispatch(loginWorkerFailure(data.message || "Invalid credentials"));
+          dispatch(resetWorkerLoadingState());
         }
       }
     } catch (error) {
@@ -155,13 +178,9 @@ const SignIn = () => {
       toast.error(error.message || "Failed to sign in");
       if (role === "user") {
         dispatch(signInFailure(error.message || "Failed to sign in"));
-      } else {
-        dispatch(loginWorkerFailure(error.message || "Failed to sign in"));
-      }
-    } finally {
-      if (role === "user") {
         dispatch(resetUserLoadingState());
       } else {
+        dispatch(loginWorkerFailure(error.message || "Failed to sign in"));
         dispatch(resetWorkerLoadingState());
       }
     }

@@ -178,7 +178,6 @@ const resendOtp = async (req, res, next) => {
   }
 };
 
-// Sign In
 const signin = async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -219,7 +218,8 @@ const signin = async (req, res, next) => {
     });
 
     console.log("Response Data:", rest);
-    res.status(200).json(rest);
+    // Include the token in the response
+    res.status(200).json({ ...rest, token });
   } catch (error) {
     console.error("Signin Error:", error);
     next(error);
