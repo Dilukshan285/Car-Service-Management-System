@@ -52,7 +52,7 @@ const SignIn = () => {
   const [role, setRole] = useState("user");
 
   const { loading: userLoading } = useSelector((state) => state.user);
-  const { loading: workerLoading, worker } = useSelector((state) => state.worker); // Use `worker` instead of `currentWorker`
+  const { loading: workerLoading, worker } = useSelector((state) => state.worker);
   const loading = role === "user" ? userLoading : workerLoading;
 
   const navigate = useNavigate();
@@ -86,7 +86,7 @@ const SignIn = () => {
     e.preventDefault();
     const requiredFields = ["email", "password"];
     let newErrors = {};
-  
+
     requiredFields.forEach((field) => {
       if (!formData[field]) {
         newErrors[field] = `${
@@ -94,83 +94,60 @@ const SignIn = () => {
         } is required`;
       }
     });
-  
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       toast.error("Please fill out all required fields.");
       return;
     }
-  
+
     try {
       if (role === "user") {
         dispatch(signInStart());
       } else {
         dispatch(loginWorkerStart());
       }
-  
+
       const endpoint =
         role === "user"
           ? `${apiURL}/api/user/signin`
           : `${apiURL}/api/workers/login`;
-  
+
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
         credentials: "include",
       });
-  
+
+      const data = await res.json();
+      console.log("API Response:", data);
+
       // Check for manager status code (278)
       if (res.status === 278) {
-        const data = await res.json();
         console.log("Manager sign-in response:", data);
         
-        // Extract token from response
-        const token = data.token || data.data?.token;
-        if (!token) {
-          throw new Error("Authentication token missing in response");
-        }
-        
-        // Store token in localStorage
-        localStorage.setItem("access_token", token);
-        console.log("Manager token stored in localStorage:", token);
-        
-        // Dispatch worker login success
-        dispatch(loginWorkerSuccess(data.data.worker));
-        
-        // Navigate to manager dashboard
+        // Dispatch worker login success with manager data
+        dispatch(loginWorkerSuccess(data.data?.worker || data.worker || data));
         navigate("/manager_dashboard");
         return;
       }
-  
-      const data = await res.json();
-      console.log("Sign-in response:", data);
-  
+
       if (res.ok) {
-        // Extract token from response
-        const token = data.token || data.data?.token;
-        if (!token) {
-          throw new Error("Authentication token missing in response");
-        }
-  
-        // Store token in localStorage
-        localStorage.setItem("access_token", token);
-        console.log("Token stored in localStorage:", token);
-  
-        // Dispatch success action based on role
+        // Handle successful login without requiring token in response body
         if (role === "user") {
-          dispatch(signInSuccess(data));
+          dispatch(signInSuccess(data.data || data));
           navigate("/");
         } else {
-          dispatch(loginWorkerSuccess(data.data.worker));
+          dispatch(loginWorkerSuccess(data.data?.worker || data.worker || data));
           navigate("/service-dashboard");
         }
       } else {
         toast.error(data.message || "Invalid credentials. Please try again.");
         if (role === "user") {
-          dispatch(resetUserLoadingState());
+          dispatch(signInFailure(data.message || "Invalid credentials"));
         } else {
-          dispatch(resetWorkerLoadingState());
+          dispatch(loginWorkerFailure(data.message || "Invalid credentials"));
         }
       }
     } catch (error) {
@@ -178,9 +155,13 @@ const SignIn = () => {
       toast.error(error.message || "Failed to sign in");
       if (role === "user") {
         dispatch(signInFailure(error.message || "Failed to sign in"));
-        dispatch(resetUserLoadingState());
       } else {
         dispatch(loginWorkerFailure(error.message || "Failed to sign in"));
+      }
+    } finally {
+      if (role === "user") {
+        dispatch(resetUserLoadingState());
+      } else {
         dispatch(resetWorkerLoadingState());
       }
     }
@@ -347,7 +328,7 @@ const SignIn = () => {
             variants={fieldVariants}
             className="text-start mt-3 text-sm text-gray-500"
           >
-            Don’t have an account?{" "}
+            Don't have an account?{" "}
             <Link to="/sign-up">
               <motion.span
                 whileHover={{ scale: 1.05 }}
