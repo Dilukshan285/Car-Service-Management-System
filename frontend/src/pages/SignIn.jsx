@@ -140,7 +140,7 @@ const SignIn = () => {
           navigate("/");
         } else {
           dispatch(loginWorkerSuccess(data.data?.worker || data.worker || data));
-          navigate("/service-dashboard");
+          navigate("/service_dashboard");
         }
       } else {
         toast.error(data.message || "Invalid credentials. Please try again.");
