@@ -9,7 +9,7 @@ export default function Unauthorized() {
         <FaExclamationTriangle className="text-yellow-500 text-6xl mb-4" />
         <h1 className="text-3xl font-semibold text-gray-800 mb-2">Unauthorized</h1>
         <p className="text-gray-600 text-lg mb-6 text-center">
-          You do not have permission to access this page.
+          You do not have permission to access this page...
         </p>
 
         <Link
