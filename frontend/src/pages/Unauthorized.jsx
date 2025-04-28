@@ -11,7 +11,8 @@ export default function Unauthorized() {
         <p className="text-gray-600 text-lg mb-6 text-center">
           You Do not have permission to access this page...
         </p>
-
+	
+       
         <Link
           to="/"
           className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300"
