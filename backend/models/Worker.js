@@ -1,34 +1,44 @@
-import { Schema, model } from "mongoose";
+import mongoose from "mongoose";
 
-const workerSchema = new Schema(
+const workerSchema = new mongoose.Schema(
   {
     fullName: {
       type: String,
       required: true,
+      trim: true,
     },
     email: {
       type: String,
       required: true,
       unique: true,
+      trim: true,
+      lowercase: true,
+    },
+    password: {
+      type: String,
+      required: true,
     },
     phoneNumber: {
       type: String,
       required: true,
+      unique: true,
+      trim: true,
     },
     address: {
       type: String,
       required: true,
+      trim: true,
+    },
+    nic: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
     },
     primarySpecialization: {
       type: String,
       required: true,
-      enum: [
-        "Engine Specialist",
-        "Brake Specialist",
-        "Electrical Systems",
-        "General Mechanic",
-        "Transmission Specialist",
-      ],
+      trim: true,
     },
     skills: {
       type: [String],
@@ -46,12 +56,9 @@ const workerSchema = new Schema(
       type: [String],
       default: [],
     },
-    hourlyRate: {
-      type: Number,
-      required: true,
-    },
     additionalNotes: {
       type: String,
+      trim: true,
       default: "",
     },
     workload: {
@@ -60,18 +67,26 @@ const workerSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["available", "busy"],
+      enum: ["available", "busy", "on_leave"],
       default: "available",
+    },
+    profilePicture: {
+      type: String,
+      default: "https://tse2.mm.bing.net/th?id=OIP.eCrcK2BiqwBGE1naWwK3UwHaHa&pid=Api&P=0&h=180",
     },
     tasks: [
       {
-        type: Schema.Types.ObjectId,
-        ref: "Appointment", // Reference to the Appointment model
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Appointment",
       },
     ],
+    lastLogin: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );
 
-const Worker = model("Worker", workerSchema);
+const Worker = mongoose.model("Worker", workerSchema);
+
 export default Worker;

@@ -1,45 +1,87 @@
 import React, { useState, useEffect } from "react";
 import { ClipLoader } from "react-spinners";
-import { FaUpload, FaCalendarAlt } from "react-icons/fa";
+import { FaUpload } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import axios from "axios";
+import { z } from "zod";
+
+// Define Zod schema with specific validations
+const formSchema = z.object({
+  name: z
+    .string()
+    .min(2, { message: "Name must be at least 2 characters." })
+    .regex(/^[a-zA-Z\s]+$/, { message: "Name can only contain letters and spaces." }),
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  phone: z
+    .string()
+    .regex(/^07[0-2,5-8]\d{7}$/, {
+      message: "Phone number must be a valid Sri Lankan mobile number (e.g., 0711234567).",
+    }),
+  address: z.string().min(5, { message: "Address must be at least 5 characters." }),
+  nic: z.string().regex(/^(?:\d{12}|\d{9}[Vv])$/, {
+    message: "NIC must be 12 digits (e.g., 200205602825) or 9 digits + 'V' (e.g., 612353921V).",
+  }),
+  specialization: z.string({ required_error: "Please select a specialization." }),
+  hireDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), { message: "Please select a valid date." })
+    .refine((val) => {
+      // Get current date without time component for comparison
+      const currentDate = new Date();
+      currentDate.setHours(0, 0, 0, 0);
+      
+      const selectedDate = new Date(val);
+      selectedDate.setHours(0, 0, 0, 0);
+      
+      return selectedDate <= currentDate;
+    }, {
+      message: "Hire date cannot be in the future.",
+    }),
+  availability: z.array(z.string()).min(1, { message: "Select at least one day of availability." }),
+  skills: z.array(z.string()).min(1, { message: "Select at least one skill." }),
+  certifications: z.array(z.string()),
+  notes: z.string().optional(),
+});
 
 const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
   const [loading, setLoading] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [certificationsOpen, setCertificationsOpen] = useState(false);
+  const [profilePicture, setProfilePicture] = useState(null);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
-    phone: "",
+    phoneNumber: "",
     address: "",
+    nic: "",
     primarySpecialization: "",
     skills: [],
     certifications: [],
     hireDate: "",
-    availability: {
-      Monday: true,
-      Tuesday: true,
-      Wednesday: true,
-      Thursday: true,
-      Friday: true,
-      Saturday: false,
-      Sunday: false,
-    },
+    weeklyAvailability: [],
     additionalNotes: "",
   });
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
+  const [maxDate, setMaxDate] = useState("");
 
-  // Set initial hire date to current date (March 17, 2025)
   useEffect(() => {
-    const today = new Date("2025-03-17");
+    // Get current date in YYYY-MM-DD format
+    const today = new Date();
+    const formattedDate = today.toISOString().split("T")[0];
+    
+    // Set the max date attribute to today's date
+    setMaxDate(formattedDate);
+    
+    // Set today's date as the default hire date
     setFormData((prev) => ({
       ...prev,
-      hireDate: today.toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      }),
+      hireDate: formattedDate,
     }));
+    
+    setTouched((prev) => ({ ...prev, hireDate: true }));
+    validateField("hireDate", formattedDate);
   }, []);
 
   const skillOptions = [
@@ -60,90 +102,260 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
     "Transmission Specialist",
   ];
 
+  const validateField = (fieldName, value) => {
+    // Map formData field names to Zod schema keys
+    const fieldMap = {
+      fullName: "name",
+      email: "email",
+      phoneNumber: "phone",
+      address: "address",
+      nic: "nic",
+      primarySpecialization: "specialization",
+      hireDate: "hireDate",
+      weeklyAvailability: "availability",
+      skills: "skills",
+      certifications: "certifications",
+      additionalNotes: "notes",
+    };
+
+    const zodFieldName = fieldMap[fieldName] || fieldName;
+
+    // Ensure skills, certifications, and availability are arrays
+    const safeSkills = Array.isArray(formData.skills) ? formData.skills : [];
+    const safeCertifications = Array.isArray(formData.certifications) ? formData.certifications : [];
+    const safeAvailability = Array.isArray(formData.weeklyAvailability) ? formData.weeklyAvailability : [];
+
+    const validationData = {
+      name: formData.fullName,
+      email: formData.email,
+      phone: formData.phoneNumber,
+      address: formData.address,
+      nic: formData.nic,
+      specialization: formData.primarySpecialization,
+      hireDate: formData.hireDate,
+      availability: safeAvailability,
+      skills: safeSkills,
+      certifications: safeCertifications,
+      notes: formData.additionalNotes,
+      [zodFieldName]: value, // Override the field being validated
+    };
+
+    try {
+      formSchema.parse(validationData);
+      setErrors((prev) => ({ ...prev, [zodFieldName]: "" }));
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldError = error.errors.find((err) => err.path[0] === zodFieldName);
+        setErrors((prev) => ({
+          ...prev,
+          [zodFieldName]: fieldError ? fieldError.message : "",
+        }));
+      } else {
+        console.error(`Unexpected error during validation of ${fieldName}:`, error);
+        setErrors((prev) => ({
+          ...prev,
+          [zodFieldName]: "An unexpected error occurred during validation.",
+        }));
+      }
+    }
+  };
+
   const handleChange = (e) => {
     const { id, value } = e.target;
-    setFormData({ ...formData, [id]: value });
+
+    // Restrict input based on field
+    if (id === "fullName" && !/^[a-zA-Z\s]*$/.test(value)) return; // Only letters and spaces
+    if (id === "phoneNumber" && !/^\d*$/.test(value)) return; // Only numbers
+    if (id === "nic" && !/^[0-9Vv]*$/.test(value)) return; // Only numbers and 'V' or 'v'
+
+    setFormData((prev) => ({ ...prev, [id]: value }));
+    setTouched((prev) => ({ ...prev, [id]: true }));
+    validateField(id, value);
+
+    // Clear backend errors for email, phoneNumber, or nic when the user modifies the field
+    if (id === "email" && errors.email?.includes("already in use")) {
+      setErrors((prev) => ({ ...prev, email: "" }));
+    }
+    if (id === "phoneNumber" && errors.phone?.includes("already in use")) {
+      setErrors((prev) => ({ ...prev, phone: "" }));
+    }
+    if (id === "nic" && errors.nic?.includes("already in use")) {
+      setErrors((prev) => ({ ...prev, nic: "" }));
+    }
+  };
+
+  const handleFileChange = (e) => {
+    setProfilePicture(e.target.files[0]);
   };
 
   const handleSkillsSelect = (skill) => {
     if (!formData.skills.includes(skill)) {
-      setFormData({ ...formData, skills: [...formData.skills, skill] });
+      const newSkills = [...formData.skills, skill];
+      setFormData((prev) => ({ ...prev, skills: newSkills }));
+      setTouched((prev) => ({ ...prev, skills: true }));
+      validateField("skills", newSkills);
     }
     setSkillsOpen(false);
   };
 
   const handleCertificationsSelect = (cert) => {
     if (!formData.certifications.includes(cert)) {
-      setFormData({ ...formData, certifications: [...formData.certifications, cert] });
+      const newCerts = [...formData.certifications, cert];
+      setFormData((prev) => ({ ...prev, certifications: newCerts }));
+      setTouched((prev) => ({ ...prev, certifications: true }));
+      validateField("certifications", newCerts);
     }
     setCertificationsOpen(false);
   };
 
   const removeSkill = (skill) => {
-    setFormData({
-      ...formData,
-      skills: formData.skills.filter((s) => s !== skill),
-    });
+    const newSkills = formData.skills.filter((s) => s !== skill);
+    setFormData((prev) => ({ ...prev, skills: newSkills }));
+    setTouched((prev) => ({ ...prev, skills: true }));
+    validateField("skills", newSkills);
   };
 
   const removeCertification = (cert) => {
-    setFormData({
-      ...formData,
-      certifications: formData.certifications.filter((c) => c !== cert),
-    });
+    const newCerts = formData.certifications.filter((c) => c !== cert);
+    setFormData((prev) => ({ ...prev, certifications: newCerts }));
+    setTouched((prev) => ({ ...prev, certifications: true }));
+    validateField("certifications", newCerts);
   };
 
   const handleAvailabilityChange = (day) => {
-    setFormData({
-      ...formData,
-      availability: {
-        ...formData.availability,
-        [day]: !formData.availability[day],
-      },
-    });
+    const newAvailability = formData.weeklyAvailability.includes(day)
+      ? formData.weeklyAvailability.filter((d) => d !== day)
+      : [...formData.weeklyAvailability, day];
+    setFormData((prev) => ({ ...prev, weeklyAvailability: newAvailability }));
+    setTouched((prev) => ({ ...prev, weeklyAvailability: true }));
+    validateField("weeklyAvailability", newAvailability);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // Basic validation
-    if (!formData.fullName || !formData.email || !formData.phone || !formData.address) {
-      toast.error("Please fill in all required fields.");
-      setLoading(false);
-      return;
-    }
+    const validationData = {
+      name: formData.fullName,
+      email: formData.email,
+      phone: formData.phoneNumber,
+      address: formData.address,
+      nic: formData.nic,
+      specialization: formData.primarySpecialization,
+      hireDate: formData.hireDate,
+      availability: formData.weeklyAvailability,
+      skills: formData.skills,
+      certifications: formData.certifications,
+      notes: formData.additionalNotes,
+    };
+
+    // Validate all fields on submission
+    Object.entries(validationData).forEach(([key, value]) => {
+      const fieldMap = {
+        name: "fullName",
+        email: "email",
+        phone: "phoneNumber",
+        address: "address",
+        nic: "nic",
+        specialization: "primarySpecialization",
+        hireDate: "hireDate",
+        availability: "weeklyAvailability",
+        skills: "skills",
+        certifications: "certifications",
+        notes: "additionalNotes",
+      };
+      const formFieldName = fieldMap[key] || key;
+      validateField(formFieldName, value);
+    });
+
+    // Mark all fields as touched to ensure errors are displayed
+    setTouched(
+      Object.keys(validationData).reduce((acc, key) => ({ ...acc, [key]: true }), {})
+    );
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      formSchema.parse(validationData);
 
-      const workerData = {
-        name: formData.fullName,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        specialization: formData.primarySpecialization,
-        skills: formData.skills,
-        certifications: formData.certifications,
-        hireDate: formData.hireDate,
-        availability: Object.keys(formData.availability).filter(
-          (day) => formData.availability[day]
-        ),
-        notes: formData.additionalNotes,
-        status: "available",
-        workload: 0,
-        rating: 4.5,
-      };
+      const data = new FormData();
+      data.append("fullName", formData.fullName);
+      data.append("email", formData.email);
+      data.append("phoneNumber", formData.phoneNumber);
+      data.append("address", formData.address);
+      data.append("nic", formData.nic);
+      data.append("primarySpecialization", formData.primarySpecialization);
+      data.append("skills", JSON.stringify(formData.skills));
+      data.append("certifications", JSON.stringify(formData.certifications));
+      data.append("hireDate", formData.hireDate);
+      data.append("weeklyAvailability", JSON.stringify(formData.weeklyAvailability));
+      data.append("additionalNotes", formData.additionalNotes);
+      if (profilePicture) {
+        data.append("profilePicture", profilePicture);
+      }
+
+      const response = await axios.post("http://localhost:5000/api/workers/add", data, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       if (onAddWorker) {
-        onAddWorker(workerData);
+        onAddWorker(response.data.data);
       }
 
       toast.success("Worker added successfully!");
+
+      setFormData({
+        fullName: "",
+        email: "",
+        phoneNumber: "",
+        address: "",
+        nic: "",
+        primarySpecialization: "",
+        skills: [],
+        certifications: [],
+        hireDate: "",
+        weeklyAvailability: [],
+        additionalNotes: "",
+      });
+      setProfilePicture(null);
+      setErrors({});
+      setTouched({});
       onClose();
     } catch (error) {
-      console.error("Error adding worker:", error);
-      toast.error("Failed to add worker.");
+      if (error instanceof z.ZodError) {
+        const newErrors = {};
+        error.errors.forEach((err) => {
+          newErrors[err.path[0]] = err.message;
+        });
+        setErrors(newErrors);
+      } else if (error.response) {
+        // Handle backend errors (e.g., email, phoneNumber, or NIC already exists)
+        const { message } = error.response.data;
+        if (message === "Worker email already exists") {
+          setErrors((prev) => ({
+            ...prev,
+            email: "Email is already in use by another worker",
+          }));
+          toast.error("Email is already in use by another worker");
+        } else if (message === "Worker phone number already exists") {
+          setErrors((prev) => ({
+            ...prev,
+            phone: "Phone number is already in use by another worker",
+          }));
+          toast.error("Phone number is already in use by another worker");
+        } else if (message === "Worker NIC already exists") {
+          setErrors((prev) => ({
+            ...prev,
+            nic: "NIC is already in use by another worker",
+          }));
+          toast.error("NIC is already in use by another worker");
+        } else {
+          toast.error(message || "Failed to add worker.");
+        }
+      } else {
+        console.error("Error adding worker:", error);
+        toast.error("Failed to add worker.");
+      }
     } finally {
       setLoading(false);
     }
@@ -171,14 +383,27 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
             <div className="w-full md:w-1/3 px-3 mb-6">
               <div className="flex flex-col items-center mb-6">
                 <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-2 border-2 border-gray-700 hover:border-blue-500 transition-colors duration-200 relative">
-                  <FaUpload className="text-3xl text-gray-400" />
+                  {profilePicture ? (
+                    <img
+                      src={URL.createObjectURL(profilePicture)}
+                      alt="Profile Preview"
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  ) : (
+                    <FaUpload className="text-3xl text-gray-400" />
+                  )}
                 </div>
-                <p className="text-blue-400 text-sm mt-2 hover:text-blue-300 transition-colors duration-200">
+                <label className="text-blue-400 text-sm mt-2 hover:text-blue-300 transition-colors duration-200 cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
                   Upload a profile photo
-                </p>
+                </label>
               </div>
 
-              {/* Full Name */}
               <div className="mb-4">
                 <label className="block text-gray-400 mb-2">Full Name</label>
                 <input
@@ -188,11 +413,10 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.fullName}
                   onChange={handleChange}
-                  required
                 />
+                {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name}</p>}
               </div>
 
-              {/* Email */}
               <div className="mb-4">
                 <label className="block text-gray-400 mb-2">Email</label>
                 <input
@@ -202,25 +426,23 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.email}
                   onChange={handleChange}
-                  required
                 />
+                {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email}</p>}
               </div>
 
-              {/* Phone Number */}
               <div className="mb-4">
                 <label className="block text-gray-400 mb-2">Phone Number</label>
                 <input
                   type="text"
-                  id="phone"
-                  placeholder="(555) 123-4567"
+                  id="phoneNumber"
+                  placeholder="0711234567"
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                  value={formData.phone}
+                  value={formData.phoneNumber}
                   onChange={handleChange}
-                  required
                 />
+                {errors.phone && <p className="text-red-400 text-sm mt-1">{errors.phone}</p>}
               </div>
 
-              {/* Address */}
               <div className="mb-4">
                 <label className="block text-gray-400 mb-2">Address</label>
                 <textarea
@@ -229,14 +451,26 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white h-24 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                   value={formData.address}
                   onChange={handleChange}
-                  required
                 />
+                {errors.address && <p className="text-red-400 text-sm mt-1">{errors.address}</p>}
               </div>
             </div>
 
             {/* Middle Column */}
             <div className="w-full md:w-1/3 px-3 mb-6">
-              {/* Specialization */}
+              <div className="mb-4">
+                <label className="block text-gray-400 mb-2">NIC</label>
+                <input
+                  type="text"
+                  id="nic"
+                  placeholder="612353921V or 200205602825"
+                  className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  value={formData.nic}
+                  onChange={handleChange}
+                />
+                {errors.nic && <p className="text-red-400 text-sm mt-1">{errors.nic}</p>}
+              </div>
+
               <div className="mb-4">
                 <label className="block text-gray-400 mb-2">Primary Specialization</label>
                 <select
@@ -246,13 +480,17 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   onChange={handleChange}
                 >
                   <option value="">Select a specialization</option>
-                  <option value="mechanic">Mechanic</option>
-                  <option value="electrician">Electrician</option>
-                  <option value="plumber">Plumber</option>
+                  <option value="Engine Specialist">Engine Specialist</option>
+                  <option value="Brake Specialist">Brake Specialist</option>
+                  <option value="Electrical Systems">Electrical Systems</option>
+                  <option value="General Mechanic">General Mechanic</option>
+                  <option value="Transmission Specialist">Transmission Specialist</option>
                 </select>
+                {errors.specialization && (
+                  <p className="text-red-400 text-sm mt-1">{errors.specialization}</p>
+                )}
               </div>
 
-              {/* Skills */}
               <div className="mb-4">
                 <label className="block text-gray-400 mb-2">Skills</label>
                 <div className="relative">
@@ -293,6 +531,7 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                     </div>
                   )}
                 </div>
+                {errors.skills && <p className="text-red-400 text-sm mt-1">{errors.skills}</p>}
                 {formData.skills.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {formData.skills.map((skill) => (
@@ -314,7 +553,6 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                 )}
               </div>
 
-              {/* Certifications */}
               <div className="mb-4">
                 <label className="block text-gray-400 mb-2">Certifications</label>
                 <div className="relative">
@@ -379,45 +617,42 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
 
             {/* Right Column */}
             <div className="w-full md:w-1/3 px-3 mb-6">
-              {/* Hire Date */}
               <div className="mb-4">
                 <label className="block text-gray-400 mb-2">Hire Date</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    id="hireDate"
-                    placeholder={formData.hireDate || "March 17th, 2025"}
-                    className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                    value={formData.hireDate}
-                    onChange={handleChange}
-                    required
-                  />
-                  <div className="absolute right-0 top-0 mt-2 mr-3">
-                    <FaCalendarAlt className="text-gray-400" />
-                  </div>
-                </div>
+                <input
+                  type="date"
+                  id="hireDate"
+                  max={maxDate} // Dynamic max date from state
+                  className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  value={formData.hireDate}
+                  onChange={handleChange}
+                />
+                {errors.hireDate && <p className="text-red-400 text-sm mt-1">{errors.hireDate}</p>}
               </div>
 
-              {/* Weekly Availability */}
               <div className="mb-4">
                 <label className="block text-gray-400 mb-2">Weekly Availability</label>
-                {Object.keys(formData.availability).map((day) => (
-                  <div key={day} className="flex items-center mb-2">
-                    <input
-                      type="checkbox"
-                      id={`day-${day}`}
-                      checked={formData.availability[day]}
-                      onChange={() => handleAvailabilityChange(day)}
-                      className="mr-2 accent-blue-500"
-                    />
-                    <label htmlFor={`day-${day}`} className="text-white">
-                      {day}
-                    </label>
-                  </div>
-                ))}
+                {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(
+                  (day) => (
+                    <div key={day} className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        id={`day-${day}`}
+                        checked={formData.weeklyAvailability.includes(day)}
+                        onChange={() => handleAvailabilityChange(day)}
+                        className="mr-2 accent-blue-500"
+                      />
+                      <label htmlFor={`day-${day}`} className="text-white">
+                        {day}
+                      </label>
+                    </div>
+                  )
+                )}
+                {errors.availability && (
+                  <p className="text-red-400 text-sm mt-1">{errors.availability}</p>
+                )}
               </div>
 
-              {/* Additional Notes */}
               <div className="mb-4">
                 <label className="block text-gray-400 mb-2">Additional Notes</label>
                 <textarea
@@ -427,6 +662,7 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
                   value={formData.additionalNotes}
                   onChange={handleChange}
                 />
+                {errors.notes && <p className="text-red-400 text-sm mt-1">{errors.notes}</p>}
               </div>
             </div>
           </div>
@@ -449,7 +685,6 @@ const AddWorkerModal = ({ isOpen, onClose, onAddWorker }) => {
           </div>
         </form>
       </div>
-
       <ToastContainer />
     </div>
   );

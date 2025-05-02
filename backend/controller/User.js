@@ -4,16 +4,16 @@ import sendMail from "../middleware/sendMail.js";
 import errorHandler from "../utils/error.js";
 import multer, { memoryStorage } from "multer";
 import sharp from "sharp";
-import TempUserStore from "../middleware/tempUserStore.js"; // Corrected path and default import
+import TempUserStore from "../middleware/tempUserStore.js";
 import convertImageToBase64 from "../middleware/Base64.js";
-import jwt from "jsonwebtoken"; // Added jsonwebtoken import
+import jwt from "jsonwebtoken";
 
 // Destructure the functions from TempUserStore
 const { storeTempUser, getTempUser, clearTempUser } = TempUserStore;
 
 // Configure multer storage to store files in memory
 const storage = memoryStorage();
-const upload = multer({ storage }).single("avatar"); // single file upload with field name 'avatar'
+const upload = multer({ storage }).single("avatar");
 
 // New User Registration
 const signup = async (req, res, next) => {
@@ -86,7 +86,7 @@ const signup = async (req, res, next) => {
 
       return res.status(200).json({ message: "OTP sent to your email" });
     } catch (error) {
-      console.error("Signup Error:", error); // Added for debugging
+      console.error("Signup Error:", error);
       next(error);
     }
   });
@@ -135,7 +135,7 @@ const verifyUser = async (req, res, next) => {
 
     return res.status(200).json({ message: "User Registration Success" });
   } catch (error) {
-    console.error("Verify User Error:", error); // Added for debugging
+    console.error("Verify User Error:", error);
     next(error);
   }
 };
@@ -164,21 +164,20 @@ const resendOtp = async (req, res, next) => {
     // Send an email to the user with the new OTP
     const message = `
       <div style="text-align: center;">
-        <h2>Welcome to G.S.P Traders Pvt Ltd</h2>
+        <h2>Welcome to Revup car service Pvt Ltd</h2>
         <p>Your new OTP is:</p>
         <h1 style="font-size: 2em; font-weight: bold;">${otp}</h1>
       </div>
     `;
-    await sendMail(email, "Your New OTP for G.S.P Traders Pvt Ltd", message);
+    await sendMail(email, "Your New OTP for Revup car service Pvt Ltd", message);
 
     return res.status(200).json({ message: "OTP sent to your email" });
   } catch (error) {
-    console.error("Resend OTP Error:", error); // Added for debugging
+    console.error("Resend OTP Error:", error);
     next(error);
   }
 };
 
-// Sign In
 const signin = async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -187,7 +186,7 @@ const signin = async (req, res, next) => {
   }
 
   try {
-    console.log("Request Body:", req.body); // Added for debugging
+    console.log("Request Body:", req.body);
     const normalizedEmail = email.toLowerCase();
 
     const validUser = await User.findOne({ email: normalizedEmail });
@@ -195,7 +194,7 @@ const signin = async (req, res, next) => {
       return next(errorHandler(404, "Invalid Credentials"));
     }
 
-    console.log("Found User:", validUser); // Added for debugging
+    console.log("Found User:", validUser);
     const validPassword = await compare(password, validUser.password);
     if (!validPassword) {
       return next(errorHandler(405, "Invalid Credentials"));
@@ -211,16 +210,18 @@ const signin = async (req, res, next) => {
 
     const { password: pass, ...rest } = validUser._doc;
 
+    // Set the cookie without maxAge (becomes a session cookie)
     res.cookie("access_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      sameSite: "strict"
     });
 
-    console.log("Response Data:", rest); // Added for debugging
-    res.status(200).json(rest);
+    console.log("Response Data:", rest);
+    // Include the token in the response
+    res.status(200).json({ ...rest, token });
   } catch (error) {
-    console.error("Signin Error:", error); // Added for debugging
+    console.error("Signin Error:", error);
     next(error);
   }
 };
@@ -238,12 +239,12 @@ const google = async (req, res, next) => {
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
       const { password, ...rest } = user._doc;
 
+      // Set the cookie without maxAge (becomes a session cookie)
       return res
         .status(200)
         .cookie("access_token", token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          maxAge: 24 * 60 * 60 * 1000, // 1 day
         })
         .json(rest);
     } else {
@@ -256,10 +257,10 @@ const google = async (req, res, next) => {
       if (googlePhotoUrl && googlePhotoUrl.startsWith("https")) {
         try {
           avatarUrl = await convertImageToBase64(googlePhotoUrl);
-          console.log("Converted avatar to base64:", avatarUrl.substring(0, 50)); // Debug first 50 chars
+          console.log("Converted avatar to base64:", avatarUrl.substring(0, 50));
         } catch (conversionError) {
           console.error("Failed to convert image to base64:", conversionError);
-          avatarUrl = "https://tse2.mm.bing.net/th?id=OIP.eCrcK2BiqwBGE1naWwK3UwHaHa&pid=Api&P=0&h=180"; // Fallback
+          avatarUrl = "https://tse2.mm.bing.net/th?id=OIP.eCrcK2BiqwBGE1naWwK3UwHaHa&pid=Api&P=0&h=180";
         }
       }
 
@@ -277,12 +278,12 @@ const google = async (req, res, next) => {
       const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET);
       const { password, ...rest } = newUser._doc;
 
+      // Set the cookie without maxAge (becomes a session cookie)
       return res
         .status(201)
         .cookie("access_token", token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          maxAge: 24 * 60 * 60 * 1000, // 1 day
         })
         .json(rest);
     }
@@ -324,7 +325,7 @@ const requestOtp = async (req, res, next) => {
 
     return res.status(200).json({ message: "OTP sent to your email" });
   } catch (error) {
-    console.error("Request OTP Error:", error); // Added for debugging
+    console.error("Request OTP Error:", error);
     next(error);
   }
 };
@@ -352,7 +353,7 @@ const verifyOtpForPasswordReset = async (req, res, next) => {
       .status(200)
       .json({ message: "OTP verified. Proceed to reset password." });
   } catch (error) {
-    console.error("Verify OTP Error:", error); // Added for debugging
+    console.error("Verify OTP Error:", error);
     next(error);
   }
 };
@@ -387,7 +388,7 @@ const recovery_resendOTP = async (req, res, next) => {
 
     return res.status(200).json({ message: "OTP resent to your email" });
   } catch (error) {
-    console.error("Resend OTP Error:", error); // Added for debugging
+    console.error("Resend OTP Error:", error);
     next(error);
   }
 };
@@ -410,7 +411,7 @@ const resetPassword = async (req, res, next) => {
 
     return res.status(200).json({ message: "Password updated successfully" });
   } catch (error) {
-    console.error("Reset Password Error:", error); // Added for debugging
+    console.error("Reset Password Error:", error);
     next(error);
   }
 };
@@ -433,7 +434,7 @@ const add_employee = async (req, res, next) => {
 
     const generatedPassword = `${first_name}@1234`;
 
-    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+    const hashedPassword = await hash(generatedPassword, 10);
 
     const newUser = new User({
       first_name,
@@ -463,7 +464,7 @@ const add_employee = async (req, res, next) => {
       .status(201)
       .json({ message: "Employee added successfully, email sent." });
   } catch (error) {
-    console.error("Add Employee Error:", error); // Added for debugging
+    console.error("Add Employee Error:", error);
     next(error);
   }
 };
@@ -492,7 +493,7 @@ const login_employee = async (req, res, next) => {
       return next(errorHandler(400, "Invalid email or password."));
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await compare(password, user.password);
     if (!isMatch) {
       return next(errorHandler(400, "Invalid email or password."));
     }
@@ -517,17 +518,17 @@ const login_employee = async (req, res, next) => {
 
     const { password: pass, ...rest } = user._doc;
 
-    let statusCode = emailStatusMap[normalizedEmail] || 200; // Default to 200 if not in map
+    let statusCode = emailStatusMap[normalizedEmail] || 200;
 
+    // Set the cookie without maxAge (becomes a session cookie)
     res.cookie("access_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
     return res.status(statusCode).json(rest);
   } catch (error) {
-    console.error("Login Employee Error:", error); // Added for debugging
+    console.error("Login Employee Error:", error);
     next(error);
   }
 };

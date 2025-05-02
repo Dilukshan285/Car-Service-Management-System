@@ -1,17 +1,18 @@
+// Validation/validation_SignIn.jsx
 export const validateForm = (name, value) => {
   switch (name) {
     case "email":
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const commonDomainTypos = ["gamil.com", "hotnail.com", "yahhoo.com"];
-      const validTLDs = [".com", ".net", ".org", ".edu", "lk"];
+      const validTLDs = [".com", ".net", ".org", ".edu", ".lk"]; // Fixed: Added dot to .lk
 
       if (!value) {
         return "Email is required";
-      } 
-      
+      }
+
       if (!emailPattern.test(value)) {
         return "Please enter a valid email address";
-      } 
+      }
 
       // Check for common domain typos
       const domain = value.split("@")[1];

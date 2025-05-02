@@ -23,8 +23,7 @@ const schema = new Schema(
       type: Number,
     },
     mobile: {
-      type: Number,
-      unique: true,
+      type: String,
       sparse: true,
     },
     address: {
@@ -41,30 +40,28 @@ const schema = new Schema(
     },
     avatar: {
       type: String,
-      default:
-        "https://tse2.mm.bing.net/th?id=OIP.eCrcK2BiqwBGE1naWwK3UwHaHa&pid=Api&P=0&h=180",
+      default: "https://tse2.mm.bing.net/th?id=OIP.eCrcK2BiqwBGE1naWwK3UwHaHa&pid=Api&P=0&h=180",
     },
     role: {
       type: String,
-      default: "User",
+      default: "user",
     },
     status: {
-      // New field to track the status
       type: String,
       enum: ["active", "inactive"],
       default: "inactive",
     },
     lastLogin: {
-      // New field to track the last login time
       type: Date,
     },
-    cartData: { type: Object, default: {} },
+    cartData: {  // Removed duplicate field
+      type: Map,
+      of: Number,
+      default: new Map()
+    },
   },
-  { timestamps: true, minimize: false } // Ensure this is at the end of the schema definition
+  { timestamps: true, minimize: false }
 );
 
-// Define the User model (if it doesn't exist, create it)
 const User = model("User", schema);
-
-// Export the User model using ES module syntax
 export default User;

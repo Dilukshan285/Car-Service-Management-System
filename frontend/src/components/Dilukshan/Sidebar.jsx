@@ -3,7 +3,7 @@ import { NavLink } from "react-router-dom";
 
 const Sidebar = () => {
   return (
-    <div className="w-64 bg-gray-900 h-screen p-6 text-white">
+    <div className="w-64 bg-gray-900 text-white flex flex-col min-h-screen p-6">
       {/* Logo */}
       <div className="flex items-center mb-8">
         <svg
@@ -24,12 +24,12 @@ const Sidebar = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="space-y-2">
+      <nav className="space-y-2 flex-1">
         <NavLink
-          to="/dashboard"
+          to="/manager_dashboard"
           className={({ isActive }) =>
             `flex items-center space-x-2 p-2 rounded-lg ${
-              isActive ? "bg-gray-700 text-white" : "text-gray-400"
+              isActive ? "bg-gray-700 text-white" : "text-gray-400 hover:bg-gray-800"
             }`
           }
         >
@@ -53,7 +53,7 @@ const Sidebar = () => {
           to="/appointments"
           className={({ isActive }) =>
             `flex items-center space-x-2 p-2 rounded-lg ${
-              isActive ? "bg-gray-700 text-white" : "text-gray-400"
+              isActive ? "bg-gray-700 text-white" : "text-gray-400 hover:bg-gray-800"
             }`
           }
         >
@@ -68,7 +68,7 @@ const Sidebar = () => {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth="2"
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
             ></path>
           </svg>
           <span>Appointments</span>
@@ -77,7 +77,7 @@ const Sidebar = () => {
           to="/workers"
           className={({ isActive }) =>
             `flex items-center space-x-2 p-2 rounded-lg ${
-              isActive ? "bg-gray-700 text-white" : "text-gray-400"
+              isActive ? "bg-gray-700 text-white" : "text-gray-400 hover:bg-gray-800"
             }`
           }
         >
@@ -92,7 +92,7 @@ const Sidebar = () => {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth="2"
-              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
             ></path>
           </svg>
           <span>Workers</span>
@@ -101,7 +101,7 @@ const Sidebar = () => {
           to="/customers"
           className={({ isActive }) =>
             `flex items-center space-x-2 p-2 rounded-lg ${
-              isActive ? "bg-gray-700 text-white" : "text-gray-400"
+              isActive ? "bg-gray-700 text-white" : "text-gray-400 hover:bg-gray-800"
             }`
           }
         >
@@ -125,7 +125,7 @@ const Sidebar = () => {
           to="/services"
           className={({ isActive }) =>
             `flex items-center space-x-2 p-2 rounded-lg ${
-              isActive ? "bg-gray-700 text-white" : "text-gray-400"
+              isActive ? "bg-gray-700 text-white" : "text-gray-400 hover:bg-gray-800"
             }`
           }
         >
@@ -140,40 +140,16 @@ const Sidebar = () => {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth="2"
-              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2zM12 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2z"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
             ></path>
           </svg>
           <span>Services</span>
         </NavLink>
         <NavLink
-          to="/vehicles"
-          className={({ isActive }) =>
-            `flex items-center space-x-2 p-2 rounded-lg ${
-              isActive ? "bg-gray-700 text-white" : "text-gray-400"
-            }`
-          }
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M8 7h12m0 0l-4-4m4 4l-4 4m-10 4H4a2 2 0 01-2-2V7a2 2 0 012-2h2m0 0V3a2 2 0 012-2h8a2 2 0 012 2v2m-2 14h2a2 2 0 002-2V9a2 2 0 00-2-2h-2"
-            ></path>
-          </svg>
-          <span>Vehicles</span>
-        </NavLink>
-        <NavLink
           to="/analytics"
           className={({ isActive }) =>
             `flex items-center space-x-2 p-2 rounded-lg ${
-              isActive ? "bg-gray-700 text-white" : "text-gray-400"
+              isActive ? "bg-gray-700 text-white" : "text-gray-400 hover:bg-gray-800"
             }`
           }
         >
@@ -194,44 +170,6 @@ const Sidebar = () => {
           <span>Analytics</span>
         </NavLink>
       </nav>
-
-      {/* System Section */}
-      <div className="mt-8">
-        <h3 className="text-gray-500 uppercase text-sm">System</h3>
-        <NavLink
-          to="/settings"
-          className={({ isActive }) =>
-            `flex items-center space-x-2 p-2 rounded-lg mt-2 ${
-              isActive ? "bg-gray-700 text-white" : "text-gray-400"
-            }`
-          }
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"
-            ></path>
-          </svg>
-          <span>Settings</span>
-        </NavLink>
-      </div>
-
-      {/* User Section */}
-      <div className="absolute bottom-6 left-6 flex items-center space-x-2">
-        <div className="h-10 w-10 bg-gray-600 rounded-full"></div>
-        <div>
-          <p className="font-semibold">John Doe</p>
-          <p className="text-gray-400 text-sm">Manager</p>
-        </div>
-      </div>
     </div>
   );
 };
