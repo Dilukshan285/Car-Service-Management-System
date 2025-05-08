@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { CalendarIcon, Upload } from "lucide-react";
+import { CalendarIcon, Upload, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { jsPDF } from "jspdf";
+import axios from "axios";
 
 const BookingForm = () => {
   const navigate = useNavigate();
@@ -16,13 +17,33 @@ const BookingForm = () => {
     year: "",
     carNumberPlate: "",
     mileage: "",
-    serviceType: "regular",
+    serviceType: "",
     appointmentDate: null,
     appointmentTime: "",
     notes: "",
   });
   const [loading, setLoading] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [serviceTypes, setServiceTypes] = useState([]);
+  const [selectedService, setSelectedService] = useState(null);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
+
+  // Fetch service types from API
+  useEffect(() => {
+    const fetchServiceTypes = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/service-types");
+        setServiceTypes(response.data.data || []);
+        if (response.data.data.length > 0) {
+          setFormData((prev) => ({ ...prev, serviceType: response.data.data[0]._id }));
+          setSelectedService(response.data.data[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching service types:", error);
+      }
+    };
+    fetchServiceTypes();
+  }, []);
 
   // Redirect if user is not authenticated
   useEffect(() => {
@@ -34,13 +55,67 @@ const BookingForm = () => {
     }
   }, [currentUser, navigate]);
 
+  // Generate time slots based on service duration
+  useEffect(() => {
+    if (!selectedService || !selectedService.estimatedTime) {
+      setAvailableTimeSlots([]);
+      return;
+    }
+
+    const durationMinutes = parseInt(selectedService.estimatedTime);
+    const durationHours = Math.ceil(durationMinutes / 60); // Round up to nearest hour
+
+    // Define working hours (9:00 AM to 5:00 PM)
+    const startHour = 9; // 9:00 AM
+    const endHour = 17; // 5:00 PM
+    const timeSlots = [];
+
+    // Generate time slots based on duration
+    for (let hour = startHour; hour + durationHours <= endHour; ) {
+      const startTimeHour = hour;
+      const endTimeHour = hour + durationHours;
+
+      // Format start time
+      const startPeriod = startTimeHour >= 12 ? "PM" : "AM";
+      const startHourFormatted = startTimeHour > 12 ? startTimeHour - 12 : startTimeHour === 0 ? 12 : startTimeHour;
+      const startTime = `${startHourFormatted}:00 ${startPeriod}`;
+
+      // Format end time
+      const endPeriod = endTimeHour >= 12 ? "PM" : "AM";
+      const endHourFormatted = endTimeHour > 12 ? endTimeHour - 12 : endTimeHour === 0 ? 12 : endTimeHour;
+      const endTime = `${endHourFormatted}:00 ${endPeriod}`;
+
+      // Create slot (e.g., "9:00 AM - 10:00 AM" for 60 minutes)
+      const slot = `${startTime} - ${endTime}`;
+      timeSlots.push({ display: slot, start: `${startTimeHour.toString().padStart(2, "0")}:00` });
+
+      // Increment hour based on duration
+      hour += durationHours;
+
+      // Adjust for lunch break (12:00 PM to 1:00 PM)
+      if (hour >= 12 && hour < 13) {
+        hour = 13; // Skip to 1:00 PM
+      }
+    }
+
+    setAvailableTimeSlots(timeSlots);
+
+    // Reset appointmentTime if current selection is invalid
+    if (!timeSlots.some((slot) => slot.start === formData.appointmentTime)) {
+      setFormData((prev) => ({ ...prev, appointmentTime: timeSlots[0]?.start || "" }));
+    }
+  }, [selectedService]);
+
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
   const handleServiceTypeChange = (e) => {
-    setFormData((prev) => ({ ...prev, serviceType: e.target.value }));
+    const serviceId = e.target.value;
+    setFormData((prev) => ({ ...prev, serviceType: serviceId }));
+    const service = serviceTypes.find((s) => s._id === serviceId);
+    setSelectedService(service);
   };
 
   const handleDateSelect = (newDate) => {
@@ -49,19 +124,13 @@ const BookingForm = () => {
   };
 
   const handleTimeChange = (e) => {
-    const timeStr = e.target.value;
-    const [time, period] = timeStr.split(" ");
-    let [hours, minutes] = time.split(":");
-    if (period === "PM" && hours !== "12") hours = parseInt(hours) + 12;
-    if (period === "AM" && hours === "12") hours = "00";
-    const formattedTime = `${hours.toString().padStart(2, "0")}:${minutes}`;
-    setFormData((prev) => ({ ...prev, appointmentTime: formattedTime }));
+    const selectedSlot = availableTimeSlots.find((slot) => slot.display === e.target.value);
+    setFormData((prev) => ({ ...prev, appointmentTime: selectedSlot ? selectedSlot.start : "" }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Double-check authentication before proceeding
     if (!currentUser) {
       navigate("/sign-in");
       return;
@@ -124,26 +193,27 @@ const BookingForm = () => {
       20,
       70
     );
-    doc.text(`Time: ${formData.appointmentTime || "Not selected"}`, 20, 80);
-    doc.text(`Service Type: ${formData.serviceType || "Not selected"}`, 20, 90);
-    doc.text("Car Details:", 20, 100);
-    doc.text(`Make: ${formData.make || "Not provided"}`, 20, 110);
-    doc.text(`Model: ${formData.model || "Not provided"}`, 20, 120);
-    doc.text(`Year: ${formData.year || "Not provided"}`, 20, 130);
-    doc.text(`License Plate: ${formData.carNumberPlate || "Not provided"}`, 20, 140);
-    doc.text(`Mileage: ${formData.mileage || "Not provided"}`, 20, 150);
-    doc.text(`Notes: ${formData.notes || "None"}`, 20, 160);
+    const selectedSlot = availableTimeSlots.find((slot) => slot.start === formData.appointmentTime);
+    doc.text(`Time: ${selectedSlot ? selectedSlot.display : "Not selected"}`, 20, 80);
+    doc.text(`Service Type: ${selectedService?.name || "Not selected"}`, 20, 90);
+    doc.text(
+      `Duration: ${selectedService?.estimatedTime ? `${Math.ceil(selectedService.estimatedTime / 60)} hour(s)` : "N/A"}`,
+      20,
+      100
+    );
+    doc.text("Car Details:", 20, 110);
+    doc.text(`Make: ${formData.make || "Not provided"}`, 20, 120);
+    doc.text(`Model: ${formData.model || "Not provided"}`, 20, 130);
+    doc.text(`Year: ${formData.year || "Not provided"}`, 20, 140);
+    doc.text(`License Plate: ${formData.carNumberPlate || "Not provided"}`, 20, 150);
+    doc.text(`Mileage: ${formData.mileage || "Not provided"}`, 20, 160);
+    doc.text(`Notes: ${formData.notes || "None"}`, 20, 170);
     doc.setLineWidth(0.5);
-    doc.line(20, 170, 190, 170);
-    doc.text("Thank you for choosing RevUp Car Service!", 20, 180);
-    doc.text("We look forward to serving you.", 20, 190);
+    doc.line(20, 180, 190, 180);
+    doc.text("Thank you for choosing RevUp Car Service!", 20, 190);
+    doc.text("We look forward to serving you.", 20, 200);
     doc.save("appointment-receipt.pdf");
   };
-
-  const availableTimes = [
-    "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
-    "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:00 PM",
-  ];
 
   if (!currentUser) {
     return null;
@@ -221,31 +291,36 @@ const BookingForm = () => {
 
           <div className="space-y-6">
             <h3 className="text-xl font-semibold text-gray-800">Service Type</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[
-                { value: "regular", label: "Regular Maintenance", desc: "Oil change, filter replacement, inspection" },
-                { value: "major", label: "Major Service", desc: "Full inspection, fluids, filters, brakes" },
-                { value: "repair", label: "Repair Service", desc: "Fix specific issues with your vehicle" },
-                { value: "diagnostic", label: "Diagnostic Check", desc: "Computer diagnostics and inspection" },
-              ].map((service) => (
-                <label
-                  key={service.value}
-                  className="flex items-start space-x-3 border border-gray-200 rounded-lg p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-all duration-200 shadow-sm hover:shadow-md"
-                >
-                  <input
-                    type="radio"
-                    name="serviceType"
-                    value={service.value}
-                    checked={formData.serviceType === service.value}
-                    onChange={handleServiceTypeChange}
-                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <div className="font-semibold text-gray-800">{service.label}</div>
-                    <div className="text-sm text-gray-600">{service.desc}</div>
-                  </div>
-                </label>
-              ))}
+            <div className="space-y-4">
+              <select
+                id="serviceType"
+                value={formData.serviceType}
+                onChange={handleServiceTypeChange}
+                className="w-full rounded-lg border border-gray-300 p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:bg-gray-100"
+              >
+                {serviceTypes.map((service) => (
+                  <option key={service._id} value={service._id}>
+                    {service.name}
+                  </option>
+                ))}
+              </select>
+              {selectedService && (
+                <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg shadow-sm">
+                  <p className="text-sm text-gray-700 mb-2">{selectedService.description}</p>
+                  <p className="text-sm text-gray-700 mb-2">
+                    Estimated Duration: {Math.ceil(selectedService.estimatedTime / 60)} hour(s)
+                  </p>
+                  <h4 className="text-sm font-semibold text-gray-800 mt-2">Features:</h4>
+                  <ul className="list-none pl-0 mt-1 space-y-1">
+                    {selectedService.features.map((feature, index) => (
+                      <li key={index} className="flex items-center text-sm text-gray-700">
+                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
 
@@ -284,7 +359,7 @@ const BookingForm = () => {
                       : "Select a date"}
                   </button>
                   {isCalendarOpen && (
-                    <div className="absolute z-10 bg-white border border-gray-300 rounded-lg shadow-lg mt-2 p-2 animate-fade-in">
+                    <div className="absolute z-10 bg-white border border-gray-200 rounded-lg shadow-lg mt-2 p-2 animate-fade-in">
                       <DayPicker
                         mode="single"
                         selected={formData.appointmentDate}
@@ -302,20 +377,15 @@ const BookingForm = () => {
                 <label htmlFor="time" className="text-sm font-semibold text-gray-800">Preferred Time</label>
                 <select
                   id="time"
-                  value={availableTimes.find((t) => {
-                    const [time, period] = t.split(" ");
-                    let [hours, minutes] = time.split(":");
-                    if (period === "PM" && hours !== "12") hours = parseInt(hours) + 12;
-                    if (period === "AM" && hours === "12") hours = "00";
-                    return `${hours.toString().padStart(2, "0")}:${minutes}` === formData.appointmentTime;
-                  }) || ""}
+                  value={availableTimeSlots.find((slot) => slot.start === formData.appointmentTime)?.display || ""}
                   onChange={handleTimeChange}
+                  disabled={availableTimeSlots.length === 0}
                   className="w-full rounded-lg border border-gray-300 p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:bg-gray-100"
                 >
-                  <option value="">Select a time</option>
-                  {availableTimes.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
+                  <option value="">Select a time slot</option>
+                  {availableTimeSlots.map((slot, index) => (
+                    <option key={index} value={slot.display}>
+                      {slot.display}
                     </option>
                   ))}
                 </select>

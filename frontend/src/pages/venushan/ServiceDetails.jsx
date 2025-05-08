@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { loginWorkerSuccess } from "../../redux/user/workerSlice.js";
@@ -20,21 +20,17 @@ const ServiceDetails = () => {
   // Fetch worker details if token exists but worker is null, but only if NOT in readOnly mode
   useEffect(() => {
     const fetchWorkerDetails = async () => {
-      // Skip authentication check if in readOnly mode
-      if (readOnly) {
-        return;
-      }
-      
+      if (readOnly) return;
+
       const token = localStorage.getItem("access_token");
       if (!worker && token) {
         try {
-          const response = await fetch("http://localhost:5000/api/workers/schedule", {
+          const response = await fetch("http://localhost:5000/api/workers/current-schedule", {
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
           });
-
           const data = await response.json();
           if (response.ok && data.success) {
             dispatch(loginWorkerSuccess(data.data.worker));
@@ -47,7 +43,6 @@ const ServiceDetails = () => {
           navigate("/sign-in");
         }
       } else if (!worker && !token && !readOnly) {
-        // Only redirect to sign-in if not in readOnly mode
         console.log("No worker or token, redirecting to sign-in");
         navigate("/sign-in");
       }
@@ -69,19 +64,10 @@ const ServiceDetails = () => {
       lastService: "N/A",
       serviceType: appointment.serviceType,
       customerNotes: appointment.notes || "No notes provided",
-      checklist: [
-        "Oil Change",
-        "Oil Filter Replacement",
-        "Air Filter Check",
-        "Battery Check",
-        "Brake Fluid Change",
-        "Brake Pad Inspection/Replacement",
-        "Tire Rotation",
-        "Lights and Signals Check",
-      ],
+      checklist: appointment.serviceType.features || [], // Use features as checklist
       appointmentId: appointment.id || appointment._id,
+      status: appointment.status,
     };
-
     setServiceData(mappedServiceData);
 
     const savedChecklist = appointment.checklist || {};
@@ -104,7 +90,6 @@ const ServiceDetails = () => {
         if (!appointment || appointment.carNumberPlate !== plate) {
           throw new Error("Service data not found or plate mismatch.");
         }
-
         mapAppointmentToServiceData(appointment);
       } catch (err) {
         console.error("Error loading service details:", err);
@@ -113,12 +98,11 @@ const ServiceDetails = () => {
         setLoading(false);
       }
     };
-
     loadServiceDetails();
   }, [plate, location.state]);
 
-  // Function to fetch updated appointment details
-  const fetchUpdatedServiceDetails = async () => {
+  // Memoized function to fetch updated service details
+  const fetchUpdatedServiceDetails = useCallback(async () => {
     if (!serviceData?.appointmentId) {
       toast.error("Appointment ID is missing.");
       return;
@@ -133,27 +117,24 @@ const ServiceDetails = () => {
 
     try {
       setLoading(true);
-      // Fetch the updated appointment from the schedule endpoint
-      const response = await fetch("http://localhost:5000/api/workers/schedule", {
+      const response = await fetch("http://localhost:5000/api/workers/current-schedule", {
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
       });
-
       const data = await response.json();
       if (response.ok && data.success) {
-        // Find the updated appointment by ID
         const updatedAppointment = data.data.schedule.find(
-          (appt) => appt.id === serviceData.appointmentId || appt._id === serviceData.appointmentId
+          (appt) => appt.id === serviceData.appointmentId
         );
-
-        if (!updatedAppointment) {
-          throw new Error("Updated appointment not found.");
+        if (updatedAppointment) {
+          mapAppointmentToServiceData(updatedAppointment);
+        } else {
+          throw new Error("Updated appointment not found in schedule.");
         }
-
-        mapAppointmentToServiceData(updatedAppointment);
       } else {
-        throw new Error(data.message || "Failed to fetch updated service details");
+        throw new Error(data.message || "Failed to fetch updated schedule");
       }
     } catch (err) {
       console.error("Error fetching updated service details:", err);
@@ -161,7 +142,7 @@ const ServiceDetails = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [serviceData?.appointmentId, navigate]);
 
   const handleChecklistChange = (item) => {
     if (readOnly) return;
@@ -179,8 +160,12 @@ const ServiceDetails = () => {
   const handleCompleteService = async () => {
     if (readOnly) return;
 
+    const confirmComplete = window.confirm(
+      "Are you sure you want to mark this service as completed? This action cannot be undone."
+    );
+    if (!confirmComplete) return;
+
     const token = localStorage.getItem("access_token");
-    console.log("Token for completing service:", token);
     if (!token) {
       toast.error("Authentication token missing. Please sign in again.");
       navigate("/sign-in");
@@ -188,8 +173,9 @@ const ServiceDetails = () => {
     }
 
     try {
+      setLoading(true);
       const response = await fetch(
-        `http://localhost:5000/api/appointments/${serviceData.appointmentId}`,
+        `http://localhost:5000/api/workers/complete-service/${serviceData.appointmentId}`,
         {
           method: "PUT",
           headers: {
@@ -197,19 +183,17 @@ const ServiceDetails = () => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            status: "Completed",
-            notes: `${serviceData.customerNotes}\nAdditional Issues: ${additionalIssues || "None"}`,
             checklist,
             additionalIssues,
           }),
         }
       );
-
       const data = await response.json();
 
       if (!response.ok || !data.success) {
         if (response.status === 401) {
           toast.error("Unauthorized: Please sign in again.");
+          localStorage.removeItem("access_token");
           navigate("/sign-in");
           return;
         }
@@ -217,17 +201,20 @@ const ServiceDetails = () => {
       }
 
       toast.success("Service completed successfully!");
-      navigate("/service-dashboard");
+      await fetchUpdatedServiceDetails();
+      setTimeout(() => navigate("/service-dashboard"), 1500);
     } catch (err) {
+      console.error("Error completing service:", err);
       toast.error("Error completing service: " + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleUpdateService = async () => {
     if (readOnly) return;
-    
+
     const token = localStorage.getItem("access_token");
-    console.log("Token for updating service:", token);
     if (!token) {
       toast.error("Authentication token missing. Please sign in again.");
       navigate("/sign-in");
@@ -235,6 +222,7 @@ const ServiceDetails = () => {
     }
 
     try {
+      setLoading(true);
       const response = await fetch(
         `http://localhost:5000/api/workers/update-service/${serviceData.appointmentId}`,
         {
@@ -249,7 +237,6 @@ const ServiceDetails = () => {
           }),
         }
       );
-
       const data = await response.json();
 
       if (!response.ok || !data.success) {
@@ -262,10 +249,12 @@ const ServiceDetails = () => {
       }
 
       toast.success("Service updated successfully!");
-      // Fetch updated service details after successful update
       await fetchUpdatedServiceDetails();
     } catch (err) {
+      console.error("Error updating service:", err);
       toast.error("Error updating service: " + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -276,7 +265,10 @@ const ServiceDetails = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-8 flex justify-center items-center">
-        <p className="text-gray-600">Loading...</p>
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+          <p className="text-gray-600 mt-4">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -284,18 +276,19 @@ const ServiceDetails = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-8 flex justify-center items-center">
-        <p className="text-red-600">{error}</p>
-        <button
-          onClick={() => navigate("/service-dashboard")}
-          className="mt-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white px-4 py-2 rounded-lg hover:from-gray-900 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg"
-        >
-          Back to Dashboard
-        </button>
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => navigate("/service-dashboard")}
+            className="mt-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white px-4 py-2 rounded-lg hover:from-gray-900 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg"
+          >
+            Back to Dashboard
+          </button>
+        </div>
       </div>
     );
   }
 
-  // Allow rendering even if worker is null when in readOnly mode
   if (!worker && !readOnly) {
     return null;
   }
@@ -387,7 +380,7 @@ const ServiceDetails = () => {
             <div className="space-y-6">
               <div>
                 <h4 className="font-semibold text-gray-800 mb-2">Service Type</h4>
-                <p className="text-gray-700">{serviceData.serviceType}</p>
+                <p className="text-gray-700">{serviceData.serviceType.name}</p>
               </div>
 
               <div>
@@ -399,20 +392,24 @@ const ServiceDetails = () => {
 
               <div>
                 <h4 className="font-semibold text-gray-800 mb-2">Service Checklist</h4>
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  {serviceData.checklist.map((item, index) => (
-                    <label key={index} className="flex items-center space-x-3 text-gray-700">
-                      <input
-                        type="checkbox"
-                        checked={checklist[item] || false}
-                        onChange={() => handleChecklistChange(item)}
-                        className="h-5 w-5 text-gray-800 rounded"
-                        disabled={readOnly}
-                      />
-                      <span>{item}</span>
-                    </label>
-                  ))}
-                </div>
+                {serviceData.checklist.length === 0 ? (
+                  <p className="text-gray-600">No checklist items available for this service type.</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    {serviceData.checklist.map((item, index) => (
+                      <label key={index} className="flex items-center space-x-3 text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={checklist[item] || false}
+                          onChange={() => handleChecklistChange(item)}
+                          className="h-5 w-5 text-gray-800 rounded"
+                          disabled={readOnly}
+                        />
+                        <span>{item}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -446,9 +443,10 @@ const ServiceDetails = () => {
         {!readOnly && (
           <button
             onClick={handleCompleteService}
-            className="w-full bg-gradient-to-r from-gray-800 to-gray-900 text-white py-3 rounded-lg mt-8 font-semibold hover:from-gray-900 hover:to-gray-700 transition-all duration-300 shadow-md hover:shadow-lg"
+            className="w-full bg-gradient-to-r from-green-600 to-green-800 text-white py-3 rounded-lg mt-8 font-semibold hover:from-green-700 hover:to-green-900 transition-all duration-300 shadow-md hover:shadow-lg"
+            disabled={loading}
           >
-            Complete Service
+            {loading ? "Completing..." : "Complete Service"}
           </button>
         )}
       </div>

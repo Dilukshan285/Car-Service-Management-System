@@ -115,7 +115,7 @@ const ServiceCard = ({ appointment }) => {
       navigate("/sign-in");
       return;
     }
-    
+
     // Navigate to the service details page when "View Progress" is clicked
     navigate(`/service-details/${appointment.carNumberPlate}`, {
       state: { ...appointment, status: "In Progress", isAcceptedByWorker: true },
@@ -123,7 +123,11 @@ const ServiceCard = ({ appointment }) => {
   };
 
   const vehicle = `${appointment.make} ${appointment.model} (${appointment.year})`;
-  const isUrgent = new Date(appointment.fullDateTime) - new Date() <= 24 * 60 * 60 * 1000;
+  // Combine appointmentDate and appointmentTime for urgency check
+  const appointmentDateTime = new Date(
+    `${appointment.appointmentDate}T${appointment.appointmentTime}`
+  );
+  const isUrgent = appointmentDateTime - new Date() <= 24 * 60 * 60 * 1000;
 
   return (
     <div className="bg-gradient-to-br from-gray-100 via-gray-200 to-white rounded-lg shadow-lg p-6 m-4 w-72 transform transition-all duration-300 hover:scale-105 hover:shadow-xl border border-gray-300">
@@ -145,7 +149,7 @@ const ServiceCard = ({ appointment }) => {
           <span className="mr-2 text-purple-600">👤</span> {appointment.worker.fullName}
         </p>
         <p className="text-gray-700 flex items-center">
-          <span className="mr-2 text-yellow-600">🛠️</span> {appointment.serviceType}
+          <span className="mr-2 text-yellow-600">🛠️</span> {appointment.serviceType.name}
         </p>
         <p className="text-gray-700 flex items-center">
           <span className="mr-2 text-indigo-600">⏰</span> {appointment.appointmentTime} on{" "}

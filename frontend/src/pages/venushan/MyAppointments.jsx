@@ -8,21 +8,20 @@ const MyAppointments = () => {
   const navigate = useNavigate();
   const { currentUser } = useSelector((state) => state.user);
   const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedCard, setExpandedCard] = useState(null);
 
-  // Redirect if user is not authenticated
   useEffect(() => {
     if (!currentUser) {
       console.log("No user in Redux store, redirecting to sign-in");
       navigate("/sign-in");
     } else {
       console.log("User authenticated via Redux:", currentUser);
+      fetchAppointments();
     }
   }, [currentUser, navigate]);
 
-  // Fetch user's appointments
   const fetchAppointments = async () => {
     setLoading(true);
     setError(null);
@@ -39,10 +38,11 @@ const MyAppointments = () => {
       });
 
       const data = await response.json();
-      console.log("My Appointments response:", data);
+      console.log("My Appointments response (full):", data);
 
       if (response.ok && data.success) {
-        setAppointments(data.data);
+        setAppointments(data.data || []);
+        console.log("Appointments state after update:", data.data);
       } else {
         throw new Error(data.message || "Failed to fetch appointments");
       }
@@ -54,13 +54,6 @@ const MyAppointments = () => {
     }
   };
 
-  useEffect(() => {
-    if (currentUser) {
-      fetchAppointments();
-    }
-  }, [currentUser]);
-
-  // Cancel an appointment
   const handleCancelAppointment = async (appointmentId) => {
     if (!window.confirm("Are you sure you want to cancel this appointment?")) return;
 
@@ -89,19 +82,16 @@ const MyAppointments = () => {
     }
   };
 
-  // Toggle expanded card
   const toggleExpandCard = (appointmentId) => {
     setExpandedCard(expandedCard === appointmentId ? null : appointmentId);
   };
 
-  // Navigate to ServiceDetails page in read-only mode
   const handleViewProgress = (appointment) => {
     navigate(`/service-details/${appointment.carNumberPlate}`, {
-      state: { ...appointment, readOnly: true }, // Pass readOnly flag
+      state: { ...appointment, readOnly: true },
     });
   };
 
-  // Get status color
   const getStatusColor = (status) => {
     switch (status) {
       case "Confirmed":
@@ -109,14 +99,14 @@ const MyAppointments = () => {
       case "In Progress":
         return "bg-blue-100 text-blue-800";
       case "Completed":
-        return "bg-gray-100 text-gray-800";
+        return "bg-green-200 text-green-900";
       case "Cancelled":
         return "bg-red-100 text-red-800";
       case "Pending":
       default:
         return "bg-yellow-100 text-yellow-800";
     }
-  };
+};
 
   if (!currentUser) {
     return null;
@@ -161,9 +151,9 @@ const MyAppointments = () => {
                     <CarIcon className="h-6 w-6 text-blue-600" />
                     <div>
                       <h3 className="text-xl font-semibold text-gray-800">
-                        {appointment.make} {appointment.model} ({appointment.year})
+                        {appointment.make || "Unknown"} {appointment.model || "Unknown"} ({appointment.year || "N/A"})
                       </h3>
-                      <p className="text-sm text-gray-500">Plate: {appointment.carNumberPlate}</p>
+                      <p className="text-sm text-gray-500">Plate: {appointment.carNumberPlate || "N/A"}</p>
                     </div>
                   </div>
                   <span
@@ -179,27 +169,30 @@ const MyAppointments = () => {
                   <div className="flex items-center space-x-2 text-gray-600">
                     <WrenchIcon className="h-5 w-5 text-gray-500" />
                     <p className="text-sm">
-                      <span className="font-medium">Service:</span> {appointment.serviceType}
+                      <span className="font-medium">Service:</span>{" "}
+                      {appointment.serviceType?.name || appointment.serviceType || "N/A"}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2 text-gray-600">
                     <CalendarIcon className="h-5 w-5 text-gray-500" />
                     <p className="text-sm">
                       <span className="font-medium">Date:</span>{" "}
-                      {format(new Date(appointment.appointmentDate), "PPP")}
+                      {appointment.appointmentDate && !isNaN(new Date(appointment.appointmentDate).getTime())
+                        ? format(new Date(appointment.appointmentDate), "PPP")
+                        : "N/A"}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2 text-gray-600">
                     <ClockIcon className="h-5 w-5 text-gray-500" />
                     <p className="text-sm">
-                      <span className="font-medium">Time:</span> {appointment.appointmentTime}
+                      <span className="font-medium">Time:</span> {appointment.appointmentTime || "N/A"}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2 text-gray-600">
                     <UserIcon className="h-5 w-5 text-gray-500" />
                     <p className="text-sm">
                       <span className="font-medium">Worker:</span>{" "}
-                      {appointment.worker ? appointment.worker.fullName : "Not Assigned"}
+                      {appointment.worker?.fullName || "Not Assigned"}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2 text-gray-600">
@@ -214,11 +207,15 @@ const MyAppointments = () => {
                   <div className="mt-4 p-4 bg-gray-50 rounded-lg animate-fade-in">
                     <p className="text-sm text-gray-600">
                       <span className="font-medium">Created At:</span>{" "}
-                      {format(new Date(appointment.createdAt), "PPPp")}
+                      {appointment.createdAt && !isNaN(new Date(appointment.createdAt).getTime())
+                        ? format(new Date(appointment.createdAt), "PPPp")
+                        : "N/A"}
                     </p>
                     <p className="text-sm text-gray-600">
                       <span className="font-medium">Updated At:</span>{" "}
-                      {format(new Date(appointment.updatedAt), "PPPp")}
+                      {appointment.updatedAt && !isNaN(new Date(appointment.updatedAt).getTime())
+                        ? format(new Date(appointment.updatedAt), "PPPp")
+                        : "N/A"}
                     </p>
                   </div>
                 )}

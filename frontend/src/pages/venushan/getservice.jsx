@@ -19,50 +19,66 @@ const GetService = () => {
   }, []);
 
   const handleDelete = async (id) => {
-    try {
-      await axios.delete(`http://localhost:5000/api/service-types/delete/${id}`);
-      setServiceTypes(serviceTypes.filter(service => service._id !== id));
-      alert('Service type deleted successfully');
-    } catch (error) {
-      console.error('Error deleting service type:', error);
-      alert('Failed to delete service type');
+    if (window.confirm('Are you sure you want to delete this service type? This action cannot be undone.')) {
+      try {
+        await axios.delete(`http://localhost:5000/api/service-types/delete/${id}`);
+        setServiceTypes(serviceTypes.filter(service => service._id !== id));
+        alert('Service type deleted successfully');
+      } catch (error) {
+        console.error('Error deleting service type:', error);
+        alert('Failed to delete service type');
+      }
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-8 bg-white shadow-lg rounded-xl mt-12">
-      <h2 className="text-3xl font-bold mb-6">All Service Types</h2>
-      <div className="grid grid-cols-1 gap-6">
-        {serviceTypes.map((service) => (
-          <div key={service._id} className="border p-4 rounded-lg flex justify-between items-center">
-            <div>
-              <h3 className="text-xl font-semibold">{service.name}</h3>
-              <p className="text-gray-600">{service.description}</p>
-              <p className="text-gray-600">Estimated Time: {service.estimatedTime} mins</p>
-              <div>
-                {service.features.map((feature, index) => (
-                  <span key={index} className="inline-block bg-gray-200 text-gray-800 text-sm mr-2 mt-2 px-2 py-1 rounded">
-                    {feature}
-                  </span>
-                ))}
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-white flex items-center justify-center p-6">
+      <div className="max-w-5xl w-full bg-white shadow-2xl rounded-2xl p-10 transform transition-all duration-300 hover:shadow-3xl">
+        <h2 className="text-4xl font-extrabold text-gray-900 mb-8 tracking-tight">
+          All Service Types
+        </h2>
+        {serviceTypes.length === 0 ? (
+          <p className="text-gray-600 text-lg">No service types available.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            {serviceTypes.map((service) => (
+              <div
+                key={service._id}
+                className="border border-gray-200 p-6 rounded-xl flex justify-between items-start bg-gradient-to-br from-gray-50 via-white to-gray-50 hover:bg-gray-100 transition-all duration-300 shadow-md hover:shadow-lg"
+              >
+                <div className="space-y-3">
+                  <h3 className="text-2xl font-semibold text-gray-900">{service.name}</h3>
+                  <p className="text-gray-600 text-base leading-relaxed">{service.description}</p>
+                  <p className="text-gray-600 text-base">Estimated Time: {service.estimatedTime} mins</p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {service.features.map((feature, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                      >
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex space-x-4">
+                  <button
+                    onClick={() => navigate(`/update-service/${service._id}`)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 shadow-md"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(service._id)}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-200 shadow-md"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="space-x-4">
-              <button
-                onClick={() => navigate(`/update-service/${service._id}`)}
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleDelete(service._id)}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
-              >
-                Delete
-              </button>
-            </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
