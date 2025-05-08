@@ -30,10 +30,9 @@ const appointmentSchema = new Schema(
       min: [0, "Mileage cannot be negative"],
     },
     serviceType: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: "ServiceType",
       required: [true, "Service type is required"],
-      enum: ["regular", "major", "repair", "diagnostic"],
-      trim: true,
     },
     appointmentDate: {
       type: Date,
@@ -71,7 +70,7 @@ const appointmentSchema = new Schema(
     userId: {
       type: Schema.Types.ObjectId,
       ref: "Usermodel",
-      required: [true, "User ID is required"], // Now required
+      required: [true, "User ID is required"],
     },
     worker: {
       type: Schema.Types.ObjectId,
