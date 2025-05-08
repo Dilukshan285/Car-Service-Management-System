@@ -1,6 +1,8 @@
+import mongoose from "mongoose"; // Add this import
 import Appointment from "../models/Appointment.js";
 import Worker from "../models/Worker.js";
 import User from "../models/Usermodel.js";
+import ServiceType from "../models/ServiceType.js";
 
 // Check authentication status
 const checkAuth = (req, res) => {
@@ -27,6 +29,22 @@ const createAppointment = async (req, res) => {
       return res.status(401).json({
         success: false,
         message: "Unauthorized: User information not found",
+      });
+    }
+
+    // Validate serviceType is a valid ServiceType ID
+    if (!mongoose.Types.ObjectId.isValid(serviceType)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid service type ID format",
+      });
+    }
+
+    const serviceTypeExists = await ServiceType.findById(serviceType);
+    if (!serviceTypeExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Service type not found",
       });
     }
 
@@ -75,7 +93,7 @@ const createAppointment = async (req, res) => {
       year,
       carNumberPlate,
       mileage,
-      serviceType,
+      serviceType, // Now an ObjectId referencing ServiceType
       appointmentDate: parsedDate,
       appointmentTime,
       notes: notes || "",
@@ -104,6 +122,7 @@ const getAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find()
       .populate("worker", "fullName")
+      .populate("serviceType", "name description estimatedTime features")
       .sort({ appointmentDate: -1, appointmentTime: -1 });
 
     res.status(200).json({
@@ -118,7 +137,6 @@ const getAppointments = async (req, res) => {
   }
 };
 
-// New function to get a single appointment by ID
 const getAppointmentById = async (req, res) => {
   try {
     const { appointmentId } = req.params;
@@ -132,7 +150,8 @@ const getAppointmentById = async (req, res) => {
 
     const appointment = await Appointment.findById(appointmentId)
       .populate("worker", "fullName email phoneNumber primarySpecialization")
-      .populate("userId", "first_name last_name email");
+      .populate("userId", "first_name last_name email")
+      .populate("serviceType", "name description estimatedTime features");
 
     if (!appointment) {
       return res.status(404).json({
@@ -141,7 +160,6 @@ const getAppointmentById = async (req, res) => {
       });
     }
 
-    // Ensure the authenticated user is either the worker assigned to the appointment or the user who created it
     const workerId = req.user?.id;
     const userId = req.user?.id;
     if (
@@ -187,6 +205,23 @@ const updateAppointment = async (req, res) => {
       });
     }
 
+    // Validate serviceType if provided
+    if (serviceType) {
+      if (!mongoose.Types.ObjectId.isValid(serviceType)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid service type ID format",
+        });
+      }
+      const serviceTypeExists = await ServiceType.findById(serviceType);
+      if (!serviceTypeExists) {
+        return res.status(400).json({
+          success: false,
+          message: "Service type not found",
+        });
+      }
+    }
+
     let newDate = existingAppointment.appointmentDate;
     if (appointmentDate) {
       newDate = new Date(appointmentDate);
@@ -228,7 +263,7 @@ const updateAppointment = async (req, res) => {
         additionalIssues: additionalIssues !== undefined ? additionalIssues : existingAppointment.additionalIssues,
       },
       { new: true, runValidators: true }
-    );
+    ).populate("serviceType", "name description estimatedTime features");
 
     res.status(200).json({
       success: true,
@@ -294,7 +329,7 @@ const assignWorkerToAppointment = async (req, res) => {
       });
     }
 
-    const appointment = await Appointment.findById(appointmentId);
+    const appointment = await Appointment.findById(appointmentId).populate("serviceType");
     if (!appointment) {
       return res.status(404).json({
         success: false,
@@ -339,10 +374,9 @@ const assignWorkerToAppointment = async (req, res) => {
       await worker.save();
     }
 
-    const populatedAppointment = await Appointment.findById(appointmentId).populate(
-      "worker",
-      "fullName email phoneNumber primarySpecialization"
-    );
+    const populatedAppointment = await Appointment.findById(appointmentId)
+      .populate("worker", "fullName email phoneNumber primarySpecialization")
+      .populate("serviceType", "name description estimatedTime features");
 
     res.status(200).json({
       success: true,
@@ -393,7 +427,7 @@ const unassignWorkerFromAppointment = async (req, res) => {
         status: "Confirmed",
       },
       { new: true }
-    );
+    ).populate("serviceType", "name description estimatedTime features");
 
     const worker = await Worker.findById(workerId);
     worker.tasks = worker.tasks.filter((taskId) => taskId.toString() !== appointmentId);
@@ -436,7 +470,6 @@ const acceptService = async (req, res) => {
       });
     }
 
-    // Ensure a worker is assigned
     if (!appointment.worker) {
       return res.status(400).json({
         success: false,
@@ -444,7 +477,6 @@ const acceptService = async (req, res) => {
       });
     }
 
-    // Ensure the authenticated worker is the one assigned to the appointment
     const workerId = req.user?.id;
     if (!workerId || appointment.worker.toString() !== workerId) {
       return res.status(403).json({
@@ -453,7 +485,6 @@ const acceptService = async (req, res) => {
       });
     }
 
-    // Update the appointment
     appointment.isAcceptedByWorker = true;
     appointment.status = "In Progress";
     const updatedAppointment = await appointment.save();
@@ -483,6 +514,7 @@ const getMyAppointments = async (req, res) => {
 
     const appointments = await Appointment.find({ userId: req.user.id })
       .populate("worker", "fullName")
+      .populate("serviceType", "name description estimatedTime features")
       .sort({ appointmentDate: -1, appointmentTime: -1 });
 
     res.status(200).json({
@@ -508,5 +540,5 @@ export default {
   assignWorkerToAppointment,
   unassignWorkerFromAppointment,
   acceptService,
-  getAppointmentById, // Export the new function
+  getAppointmentById,
 };

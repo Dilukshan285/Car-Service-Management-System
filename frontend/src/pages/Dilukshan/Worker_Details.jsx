@@ -43,10 +43,10 @@ const Worker_Details = ({ worker, onClose }) => {
   console.log("Processed Weekly Availability:", weeklyAvailability);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 transition-opacity duration-300">
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-xl shadow-2xl w-full max-w-3xl p-8 relative max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-100 hover:scale-[1.01]">
+    <div className="fixed inset-0 bg-gray-100 bg-opacity-25 flex items-center justify-center z-50 transition-opacity duration-300">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-8 relative max-h-[90vh] overflow-y-auto transform transition-all duration-300 hover:shadow-2xl border border-gray-200">
         <button
-          className="absolute top-4 right-4 text-gray-300 hover:text-white transition-colors duration-200"
+          className="absolute top-4 right-4 text-gray-600 hover:text-gray-800 transition-colors duration-200"
           onClick={onClose}
         >
           <svg
@@ -66,7 +66,7 @@ const Worker_Details = ({ worker, onClose }) => {
         </button>
 
         <div className="flex items-center mb-6">
-          <div className="h-20 w-20 bg-gradient-to-br from-gray-700 to-gray-600 rounded-full mr-4 flex items-center justify-center overflow-hidden shadow-lg">
+          <div className="h-20 w-20 bg-gradient-to-br from-blue-100 to-white rounded-full mr-4 flex items-center justify-center overflow-hidden shadow-md border-2 border-blue-200">
             {worker.profilePicture ? (
               <img
                 src={worker.profilePicture}
@@ -74,16 +74,16 @@ const Worker_Details = ({ worker, onClose }) => {
                 className="h-full w-full object-cover rounded-full"
               />
             ) : (
-              <span className="text-3xl font-semibold text-white">
+              <span className="text-3xl font-semibold text-blue-700">
                 {worker.fullName?.charAt(0)}
               </span>
             )}
           </div>
           <div className="flex-1">
-            <h2 className="text-3xl font-bold text-white">{worker.fullName}</h2>
-            <div className="flex items-center text-gray-300 mt-1">
+            <h2 className="text-3xl font-bold text-gray-900">{worker.fullName}</h2>
+            <div className="flex items-center text-gray-600 mt-1">
               <svg
-                className="h-5 w-5 mr-2 text-blue-400"
+                className="h-5 w-5 mr-2 text-blue-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -96,14 +96,14 @@ const Worker_Details = ({ worker, onClose }) => {
                   d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
-              <span className="text-lg">{worker.primarySpecialization}</span>
+              <span className="text-lg font-medium">{worker.primarySpecialization}</span>
             </div>
             <div className="flex items-center mt-2 space-x-3">
               <span
                 className={`px-2 py-1 rounded-full text-sm font-medium ${
                   worker.status === "busy"
-                    ? "bg-red-500/20 text-red-400"
-                    : "bg-green-500/20 text-green-400"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-green-100 text-green-700"
                 }`}
               >
                 {worker.status
@@ -114,14 +114,14 @@ const Worker_Details = ({ worker, onClose }) => {
           </div>
         </div>
 
-        <div className="flex border-b border-gray-700 mb-6">
+        <div className="flex border-b border-gray-200 mb-6">
           {["Overview", "Notes"].map((tab) => (
             <button
               key={tab}
               className={`px-6 py-3 text-sm font-medium transition-all duration-200 ${
                 activeTab === tab
-                  ? "border-b-2 border-blue-500 text-blue-400"
-                  : "text-gray-400 hover:text-gray-200"
+                  ? "border-b-2 border-blue-600 text-blue-700"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
               onClick={() => setActiveTab(tab)}
             >
@@ -132,12 +132,12 @@ const Worker_Details = ({ worker, onClose }) => {
 
         {activeTab === "Overview" && (
           <div className="space-y-6">
-            <div className="bg-gray-800/50 p-5 rounded-lg shadow-md">
-              <h4 className="text-xl font-semibold text-gray-100 mb-3">Contact Information</h4>
-              <div className="space-y-3">
+            <div className="bg-gray-50 p-6 rounded-xl shadow-sm">
+              <h4 className="text-xl font-semibold text-gray-800 mb-4">Contact Information</h4>
+              <div className="space-y-4">
                 <div className="flex items-center">
                   <svg
-                    className="h-5 w-5 text-gray-400 mr-3"
+                    className="h-5 w-5 text-gray-500 mr-3"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -147,14 +147,14 @@ const Worker_Details = ({ worker, onClose }) => {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth="2"
-                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
-                  <span className="text-gray-300">{worker.email || "N/A"}</span>
+                  <span className="text-gray-700">{worker.email || "N/A"}</span>
                 </div>
                 <div className="flex items-center">
                   <svg
-                    className="h-5 w-5 text-gray-400 mr-3"
+                    className="h-5 w-5 text-gray-500 mr-3"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -164,14 +164,14 @@ const Worker_Details = ({ worker, onClose }) => {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth="2"
-                      d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1.498a1 1 0 01.684.948V19a2 2 0 01-2 2H5a2 2 0 01-2-2V5z"
+                      d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.948V19a2 2 0 01-2 2H5a2 2 0 01-2-2V5z"
                     />
                   </svg>
-                  <span className="text-gray-300">{worker.phoneNumber || "N/A"}</span>
+                  <span className="text-gray-700">{worker.phoneNumber || "N/A"}</span>
                 </div>
                 <div className="flex items-center">
                   <svg
-                    className="h-5 w-5 text-gray-400 mr-3"
+                    className="h-5 w-5 text-gray-500 mr-3"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -184,17 +184,17 @@ const Worker_Details = ({ worker, onClose }) => {
                       d="M17.657 16.657L13.414 12.414a1 1 0 00-1.414 0L7.757 16.657M21 10l-9-9-9 9m18 0v11a2 2 0 01-2 2H5a2 2 0 01-2-2V10"
                     />
                   </svg>
-                  <span className="text-gray-300">{worker.address || "N/A"}</span>
+                  <span className="text-gray-700">{worker.address || "N/A"}</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-800/50 p-5 rounded-lg shadow-md">
-              <h4 className="text-xl font-semibold text-gray-100 mb-3">Employment Information</h4>
-              <div className="space-y-3">
+            <div className="bg-gray-50 p-6 rounded-xl shadow-sm">
+              <h4 className="text-xl font-semibold text-gray-800 mb-4">Employment Information</h4>
+              <div className="space-y-4">
                 <div className="flex items-center">
                   <svg
-                    className="h-5 w-5 text-gray-400 mr-3"
+                    className="h-5 w-5 text-gray-500 mr-3"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -207,11 +207,11 @@ const Worker_Details = ({ worker, onClose }) => {
                       d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2"
                     />
                   </svg>
-                  <span className="text-gray-300">NIC: {worker.nic || "N/A"}</span>
+                  <span className="text-gray-700">NIC: {worker.nic || "N/A"}</span>
                 </div>
                 <div className="flex items-center">
                   <svg
-                    className="h-5 w-5 text-gray-400 mr-3"
+                    className="h-5 w-5 text-gray-500 mr-3"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -224,24 +224,24 @@ const Worker_Details = ({ worker, onClose }) => {
                       d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
-                  <span className="text-gray-300">
+                  <span className="text-gray-700">
                     Hire Date: {worker.hireDate ? new Date(worker.hireDate).toLocaleDateString() : "N/A"}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-800/50 p-5 rounded-lg shadow-md">
-              <h4 className="text-xl font-semibold text-gray-100 mb-3">Skills & Certifications</h4>
-              <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 p-6 rounded-xl shadow-sm">
+              <h4 className="text-xl font-semibold text-gray-800 mb-4">Skills & Certifications</h4>
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <p className="text-gray-400 font-medium mb-2">Skills</p>
+                  <p className="text-gray-600 font-medium mb-3">Skills</p>
                   {skills.length > 0 ? (
                     <ul className="space-y-2">
                       {skills.map((skill, index) => (
-                        <li key={index} className="flex items-center text-gray-300">
+                        <li key={index} className="flex items-center text-gray-800">
                           <svg
-                            className="h-4 w-4 text-green-400 mr-2"
+                            className="h-4 w-4 text-green-600 mr-2"
                             fill="currentColor"
                             viewBox="0 0 20 20"
                             xmlns="http://www.w3.org/2000/svg"
@@ -257,17 +257,17 @@ const Worker_Details = ({ worker, onClose }) => {
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-gray-500">No skills listed.</p>
+                    <p className="text-gray-500 italic">No skills listed.</p>
                   )}
                 </div>
                 <div>
-                  <p className="text-gray-400 font-medium mb-2">Certifications</p>
+                  <p className="text-gray-600 font-medium mb-3">Certifications</p>
                   {certifications.length > 0 ? (
                     <ul className="space-y-2">
                       {certifications.map((cert, index) => (
-                        <li key={index} className="flex items-center text-gray-300">
+                        <li key={index} className="flex items-center text-gray-800">
                           <svg
-                            className="h-4 w-4 text-blue-400 mr-2"
+                            className="h-4 w-4 text-blue-600 mr-2"
                             fill="currentColor"
                             viewBox="0 0 20 20"
                             xmlns="http://www.w3.org/2000/svg"
@@ -279,23 +279,23 @@ const Worker_Details = ({ worker, onClose }) => {
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-gray-500">No certifications listed.</p>
+                    <p className="text-gray-500 italic">No certifications listed.</p>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-800/50 p-5 rounded-lg shadow-md">
-              <h4 className="text-xl font-semibold text-gray-100 mb-3">Availability</h4>
+            <div className="bg-gray-50 p-6 rounded-xl shadow-sm">
+              <h4 className="text-xl font-semibold text-gray-800 mb-4">Availability</h4>
               <div className="flex space-x-2">
                 {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
                   <div
                     key={day}
                     className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-medium ${
                       weeklyAvailability.includes(day)
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-700 text-gray-400"
-                    }`}
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-200 text-gray-600"
+                    } transition-colors duration-200 hover:${weeklyAvailability.includes(day) ? "bg-blue-700" : "bg-gray-300"}`}
                   >
                     {day}
                   </div>
@@ -306,9 +306,9 @@ const Worker_Details = ({ worker, onClose }) => {
         )}
 
         {activeTab === "Notes" && (
-          <div className="bg-gray-800/50 p-5 rounded-lg shadow-md">
-            <h4 className="text-xl font-semibold text-gray-100 mb-3">Additional Notes</h4>
-            <p className="text-gray-300">
+          <div className="bg-gray-50 p-6 rounded-xl shadow-sm">
+            <h4 className="text-xl font-semibold text-gray-800 mb-4">Additional Notes</h4>
+            <p className="text-gray-700">
               {worker.additionalNotes || "No additional notes provided."}
             </p>
           </div>

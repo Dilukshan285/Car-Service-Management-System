@@ -26,7 +26,13 @@ const formSchema = z.object({
   hireDate: z
     .string()
     .refine((val) => !isNaN(Date.parse(val)), { message: "Please select a valid date." })
-    .refine((val) => new Date(val) <= new Date("2025-03-27"), {
+    .refine((val) => {
+      const currentDate = new Date();
+      currentDate.setHours(0, 0, 0, 0);
+      const selectedDate = new Date(val);
+      selectedDate.setHours(0, 0, 0, 0);
+      return selectedDate <= currentDate;
+    }, {
       message: "Hire date cannot be in the future.",
     }),
   availability: z.array(z.string()).min(1, { message: "Select at least one day of availability." }),
@@ -55,8 +61,14 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
   });
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [maxDate, setMaxDate] = useState("");
 
   useEffect(() => {
+    // Get current date in YYYY-MM-DD format
+    const today = new Date();
+    const formattedDate = today.toISOString().split("T")[0];
+    setMaxDate(formattedDate);
+
     if (worker) {
       setFormData({
         fullName: worker.fullName || "",
@@ -67,7 +79,7 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
         primarySpecialization: worker.primarySpecialization || "",
         skills: worker.skills || [],
         certifications: worker.certifications || [],
-        hireDate: worker.hireDate ? new Date(worker.hireDate).toISOString().split("T")[0] : "",
+        hireDate: worker.hireDate ? new Date(worker.hireDate).toISOString().split("T")[0] : formattedDate,
         weeklyAvailability: worker.weeklyAvailability || [],
         additionalNotes: worker.additionalNotes || "",
       });
@@ -79,7 +91,7 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
         address: worker.address || "",
         nic: worker.nic || "",
         specialization: worker.primarySpecialization || "",
-        hireDate: worker.hireDate ? new Date(worker.hireDate).toISOString().split("T")[0] : "",
+        hireDate: worker.hireDate ? new Date(worker.hireDate).toISOString().split("T")[0] : formattedDate,
         availability: worker.weeklyAvailability || [],
         skills: worker.skills || [],
         certifications: worker.certifications || [],
@@ -102,6 +114,8 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
         const formFieldName = fieldMap[key] || key;
         validateField(formFieldName, value);
       });
+      setTouched((prev) => ({ ...prev, hireDate: true }));
+      validateField("hireDate", worker.hireDate ? new Date(worker.hireDate).toISOString().split("T")[0] : formattedDate);
     }
   }, [worker]);
 
@@ -124,7 +138,6 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
   ];
 
   const validateField = (fieldName, value) => {
-    // Map formData field names to Zod schema keys
     const fieldMap = {
       fullName: "name",
       email: "email",
@@ -153,7 +166,7 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
       skills: formData.skills,
       certifications: formData.certifications,
       notes: formData.additionalNotes,
-      [zodFieldName]: value, // Override the field being validated
+      [zodFieldName]: value,
     };
 
     try {
@@ -173,16 +186,14 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
   const handleChange = (e) => {
     const { id, value } = e.target;
 
-    // Restrict input based on field
-    if (id === "fullName" && !/^[a-zA-Z\s]*$/.test(value)) return; // Only letters and spaces
-    if (id === "phoneNumber" && !/^\d*$/.test(value)) return; // Only numbers
-    if (id === "nic" && !/^[0-9Vv]*$/.test(value)) return; // Only numbers and 'V' or 'v'
+    if (id === "fullName" && !/^[a-zA-Z\s]*$/.test(value)) return;
+    if (id === "phoneNumber" && !/^\d*$/.test(value)) return;
+    if (id === "nic" && !/^[0-9Vv]*$/.test(value)) return;
 
     setFormData((prev) => ({ ...prev, [id]: value }));
     setTouched((prev) => ({ ...prev, [id]: true }));
     validateField(id, value);
 
-    // Clear backend errors for email, phoneNumber, or nic when the user modifies the field
     if (id === "email" && errors.email?.includes("already in use")) {
       setErrors((prev) => ({ ...prev, email: "" }));
     }
@@ -259,7 +270,6 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
       notes: formData.additionalNotes,
     };
 
-    // Validate all fields on submission
     Object.entries(validationData).forEach(([key, value]) => {
       const fieldMap = {
         name: "fullName",
@@ -278,13 +288,11 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
       validateField(formFieldName, value);
     });
 
-    // Mark all fields as touched to ensure errors are displayed
     setTouched(
       Object.keys(validationData).reduce((acc, key) => ({ ...acc, [key]: true }), {})
     );
 
     try {
-      // Perform client-side validation with Zod
       formSchema.parse(validationData);
 
       const data = new FormData();
@@ -324,11 +332,10 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
         const newErrors = {};
         error.errors.forEach((err) => {
           newErrors[err.path[0]] = err.message;
-          toast.error(err.message); // Show toast for each Zod validation error
+          toast.error(err.message);
         });
         setErrors(newErrors);
       } else if (error.response) {
-        // Handle backend errors (e.g., email, phoneNumber, or NIC already exists)
         const { message } = error.response.data;
         if (message === "Email is already in use by another worker") {
           setErrors((prev) => ({
@@ -363,25 +370,25 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 rounded-2xl shadow-2xl w-full max-w-4xl overflow-y-auto max-h-[90vh] relative border border-gray-700">
+    <div className="fixed inset-0 bg-gray-100 bg-opacity-25 flex items-center justify-center z-50">
+      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-4xl overflow-y-auto max-h-[90vh] relative border border-gray-300">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold text-white">Update Worker</h2>
+          <h2 className="text-3xl font-bold text-gray-800">Update Worker</h2>
           <button
-            className="text-gray-300 hover:text-white text-3xl transition-colors duration-200"
+            className="text-gray-600 hover:text-gray-800 text-3xl transition-colors duration-200"
             onClick={onClose}
           >
             ×
           </button>
         </div>
-        <p className="text-gray-400 mb-6">Update the details below to modify the worker's information.</p>
+        <p className="text-gray-600 mb-6">Update the details below to modify the worker's information.</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex flex-wrap -mx-3">
             {/* Left Column */}
             <div className="w-full md:w-1/3 px-3 mb-6">
               <div className="flex flex-col items-center mb-6">
-                <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-2 border-2 border-gray-700 hover:border-blue-500 transition-colors duration-200 relative">
+                <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-2 border-2 border-gray-200 hover:border-gray-400 transition-colors duration-200 relative">
                   {profilePicture ? (
                     <img
                       src={URL.createObjectURL(profilePicture)}
@@ -395,10 +402,10 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
                       className="w-full h-full object-cover rounded-full"
                     />
                   ) : (
-                    <FaUpload className="text-3xl text-gray-400" />
+                    <FaUpload className="text-3xl text-gray-500" />
                   )}
                 </div>
-                <label className="text-blue-400 text-sm mt-2 hover:text-blue-300 transition-colors duration-200 cursor-pointer">
+                <label className="text-blue-700 text-sm mt-2 hover:text-blue-800 transition-colors duration-200 cursor-pointer">
                   <input
                     type="file"
                     accept="image/*"
@@ -410,77 +417,77 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
               </div>
 
               <div className="mb-4">
-                <label className="block text-gray-400 mb-2">Full Name</label>
+                <label className="block text-gray-700 mb-2">Full Name</label>
                 <input
                   type="text"
                   id="fullName"
-                  placeholder="John Doe"
-                  className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  placeholder="Enter full name, e.g., John Doe"
+                  className="bg-white border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all duration-200"
                   value={formData.fullName}
                   onChange={handleChange}
                 />
-                {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name}</p>}
+                {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
               </div>
 
               <div className="mb-4">
-                <label className="block text-gray-400 mb-2">Email</label>
+                <label className="block text-gray-700 mb-2">Email</label>
                 <input
                   type="email"
                   id="email"
-                  placeholder="john.doe@example.com"
-                  className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  placeholder="Enter email, e.g., john.doe@example.com"
+                  className="bg-white border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all duration-200"
                   value={formData.email}
                   onChange={handleChange}
                 />
-                {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email}</p>}
+                {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
               </div>
 
               <div className="mb-4">
-                <label className="block text-gray-400 mb-2">Phone Number</label>
+                <label className="block text-gray-700 mb-2">Phone Number</label>
                 <input
                   type="text"
                   id="phoneNumber"
-                  placeholder="0711234567"
-                  className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  placeholder="Enter phone, e.g., 071-123-4567"
+                  className="bg-white border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all duration-200"
                   value={formData.phoneNumber}
                   onChange={handleChange}
                 />
-                {errors.phone && <p className="text-red-400 text-sm mt-1">{errors.phone}</p>}
+                {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}
               </div>
 
               <div className="mb-4">
-                <label className="block text-gray-400 mb-2">Address</label>
+                <label className="block text-gray-700 mb-2">Address</label>
                 <textarea
                   id="address"
-                  placeholder="123 Main St, City, State, ZIP"
-                  className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white h-24 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  placeholder="Enter address, e.g., 123 Main St, City, State, ZIP"
+                  className="bg-white border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900 h-24 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all duration-200"
                   value={formData.address}
                   onChange={handleChange}
                 />
-                {errors.address && <p className="text-red-400 text-sm mt-1">{errors.address}</p>}
+                {errors.address && <p className="text-red-600 text-sm mt-1">{errors.address}</p>}
               </div>
             </div>
 
             {/* Middle Column */}
             <div className="w-full md:w-1/3 px-3 mb-6">
               <div className="mb-4">
-                <label className="block text-gray-400 mb-2">NIC</label>
+                <label className="block text-gray-700 mb-2">NIC</label>
                 <input
                   type="text"
                   id="nic"
-                  placeholder="612353921V or 200205602825"
-                  className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  placeholder="Enter NIC, e.g., 612353921V or 200205602825"
+                  className="bg-white border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all duration-200"
                   value={formData.nic}
                   onChange={handleChange}
                 />
-                {errors.nic && <p className="text-red-400 text-sm mt-1">{errors.nic}</p>}
+                {errors.nic && <p className="text-red-600 text-sm mt-1">{errors.nic}</p>}
               </div>
 
               <div className="mb-4">
-                <label className="block text-gray-400 mb-2">Primary Specialization</label>
+                <label className="block text-gray-700 mb-2">Primary Specialization</label>
                 <select
                   id="primarySpecialization"
-                  className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  className="bg-white border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all duration-200"
                   value={formData.primarySpecialization}
                   onChange={handleChange}
                 >
@@ -492,23 +499,23 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
                   <option value="Transmission Specialist">Transmission Specialist</option>
                 </select>
                 {errors.specialization && (
-                  <p className="text-red-400 text-sm mt-1">{errors.specialization}</p>
+                  <p className="text-red-600 text-sm mt-1">{errors.specialization}</p>
                 )}
               </div>
 
               <div className="mb-4">
-                <label className="block text-gray-400 mb-2">Skills</label>
+                <label className="block text-gray-700 mb-2">Skills</label>
                 <div className="relative">
                   <button
                     type="button"
-                    className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white text-left flex items-center justify-between hover:bg-gray-700 transition-all duration-200"
+                    className="bg-white border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900 text-left flex items-center justify-between hover:bg-gray-50 transition-all duration-200"
                     onClick={() => setSkillsOpen(!skillsOpen)}
                   >
                     {formData.skills.length > 0
                       ? `${formData.skills.length} skill${formData.skills.length > 1 ? "s" : ""} selected`
                       : "Select skills"}
                     <svg
-                      className="h-4 w-4 text-gray-400"
+                      className="h-4 w-4 text-gray-500"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -523,11 +530,11 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
                     </svg>
                   </button>
                   {skillsOpen && (
-                    <div className="absolute z-10 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                    <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
                       {skillOptions.map((skill) => (
                         <div
                           key={skill}
-                          className="py-2 px-4 hover:bg-gray-700 cursor-pointer transition-colors duration-200"
+                          className="py-2 px-4 hover:bg-gray-50 cursor-pointer transition-colors duration-200"
                           onClick={() => handleSkillsSelect(skill)}
                         >
                           {skill}
@@ -536,19 +543,19 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
                     </div>
                   )}
                 </div>
-                {errors.skills && <p className="text-red-400 text-sm mt-1">{errors.skills}</p>}
+                {errors.skills && <p className="text-red-600 text-sm mt-1">{errors.skills}</p>}
                 {formData.skills.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {formData.skills.map((skill) => (
                       <span
                         key={skill}
-                        className="bg-gray-700 text-white rounded-full px-2 py-1 text-sm flex items-center hover:bg-gray-600 transition-colors duration-200"
+                        className="bg-blue-100 text-blue-800 rounded-full px-2 py-1 text-sm flex items-center hover:bg-blue-200 transition-colors duration-200"
                       >
                         {skill}
                         <button
                           type="button"
                           onClick={() => removeSkill(skill)}
-                          className="ml-1 text-gray-400 hover:text-white"
+                          className="ml-1 text-blue-600 hover:text-blue-800"
                         >
                           ×
                         </button>
@@ -559,18 +566,18 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
               </div>
 
               <div className="mb-4">
-                <label className="block text-gray-400 mb-2">Certifications</label>
+                <label className="block text-gray-700 mb-2">Certifications</label>
                 <div className="relative">
                   <button
                     type="button"
-                    className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white text-left flex items-center justify-between hover:bg-gray-700 transition-all duration-200"
+                    className="bg-white border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900 text-left flex items-center justify-between hover:bg-gray-50 transition-all duration-200"
                     onClick={() => setCertificationsOpen(!certificationsOpen)}
                   >
                     {formData.certifications.length > 0
                       ? `${formData.certifications.length} certification${formData.certifications.length > 1 ? "s" : ""} selected`
                       : "Select certifications"}
                     <svg
-                      className="h-4 w-4 text-gray-400"
+                      className="h-4 w-4 text-gray-500"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -585,11 +592,11 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
                     </svg>
                   </button>
                   {certificationsOpen && (
-                    <div className="absolute z-10 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                    <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
                       {certificationOptions.map((cert) => (
                         <div
                           key={cert}
-                          className="py-2 px-4 hover:bg-gray-700 cursor-pointer transition-colors duration-200"
+                          className="py-2 px-4 hover:bg-gray-50 cursor-pointer transition-colors duration-200"
                           onClick={() => handleCertificationsSelect(cert)}
                         >
                           {cert}
@@ -599,20 +606,20 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
                   )}
                 </div>
                 {errors.certifications && (
-                  <p className="text-red-400 text-sm mt-1">{errors.certifications}</p>
+                  <p className="text-red-600 text-sm mt-1">{errors.certifications}</p>
                 )}
                 {formData.certifications.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {formData.certifications.map((cert) => (
                       <span
                         key={cert}
-                        className="bg-gray-700 text-white rounded-full px-2 py-1 text-sm flex items-center hover:bg-gray-600 transition-colors duration-200"
+                        className="bg-blue-100 text-blue-800 rounded-full px-2 py-1 text-sm flex items-center hover:bg-blue-200 transition-colors duration-200"
                       >
                         {cert}
                         <button
                           type="button"
                           onClick={() => removeCertification(cert)}
-                          className="ml-1 text-gray-400 hover:text-white"
+                          className="ml-1 text-blue-600 hover:text-blue-800"
                         >
                           ×
                         </button>
@@ -626,20 +633,20 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
             {/* Right Column */}
             <div className="w-full md:w-1/3 px-3 mb-6">
               <div className="mb-4">
-                <label className="block text-gray-400 mb-2">Hire Date</label>
+                <label className="block text-gray-700 mb-2">Hire Date</label>
                 <input
                   type="date"
                   id="hireDate"
-                  max="2025-03-27" // Prevents future dates in the UI
-                  className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  max={maxDate}
+                  className="bg-white border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all duration-200"
                   value={formData.hireDate}
                   onChange={handleChange}
                 />
-                {errors.hireDate && <p className="text-red-400 text-sm mt-1">{errors.hireDate}</p>}
+                {errors.hireDate && <p className="text-red-600 text-sm mt-1">{errors.hireDate}</p>}
               </div>
 
               <div className="mb-4">
-                <label className="block text-gray-400 mb-2">Weekly Availability</label>
+                <label className="block text-gray-700 mb-2">Weekly Availability</label>
                 {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(
                   (day) => (
                     <div key={day} className="flex items-center mb-2">
@@ -648,29 +655,29 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
                         id={`day-${day}`}
                         checked={formData.weeklyAvailability.includes(day)}
                         onChange={() => handleAvailabilityChange(day)}
-                        className="mr-2 accent-blue-500"
+                        className="mr-2 accent-blue-600"
                       />
-                      <label htmlFor={`day-${day}`} className="text-white">
+                      <label htmlFor={`day-${day}`} className="text-gray-900">
                         {day}
                       </label>
                     </div>
                   )
                 )}
                 {errors.availability && (
-                  <p className="text-red-400 text-sm mt-1">{errors.availability}</p>
+                  <p className="text-red-600 text-sm mt-1">{errors.availability}</p>
                 )}
               </div>
 
               <div className="mb-4">
-                <label className="block text-gray-400 mb-2">Additional Notes</label>
+                <label className="block text-gray-700 mb-2">Additional Notes</label>
                 <textarea
                   id="additionalNotes"
-                  placeholder="Any other details or preferences?"
-                  className="bg-gray-800 border border-gray-700 rounded-lg w-full py-2 px-4 text-white h-24 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  placeholder="Enter notes, e.g., special requirements or remarks"
+                  className="bg-white border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900 h-24 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all duration-200"
                   value={formData.additionalNotes}
                   onChange={handleChange}
                 />
-                {errors.notes && <p className="text-red-400 text-sm mt-1">{errors.notes}</p>}
+                {errors.notes && <p className="text-red-600 text-sm mt-1">{errors.notes}</p>}
               </div>
             </div>
           </div>
@@ -679,14 +686,14 @@ const UpdateWorkerModal = ({ isOpen, onClose, worker, onUpdateWorker }) => {
             <button
               type="button"
               onClick={onClose}
-              className="bg-gray-700 hover:bg-gray-600 text-white py-2 px-6 rounded-lg mr-4 transition-colors duration-200 shadow-md"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-6 rounded-lg mr-4 transition-colors duration-200 shadow-md"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-2 px-6 rounded-lg transition-all duration-200 shadow-md disabled:opacity-50"
+              className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg transition-all duration-200 shadow-md disabled:opacity-50"
             >
               {loading ? <ClipLoader size={20} color="white" /> : "Update Worker"}
             </button>

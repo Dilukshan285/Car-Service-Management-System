@@ -9,8 +9,9 @@ router.get("/", WorkerController.getWorkers);
 router.delete("/delete/:workerId", WorkerController.deleteWorker);
 router.put("/update/:workerId", WorkerController.updateWorker);
 router.post("/login", WorkerController.loginWorker);
-router.get("/schedule", verifyToken, WorkerController.getCurrentSchedule);
+router.get("/current-schedule", verifyToken, WorkerController.getCurrentSchedule);
 router.post("/signout", verifyToken, WorkerController.signoutWorker);
 router.put("/update-service/:appointmentId", verifyToken, WorkerController.updateServiceProgress);
+router.put("/complete-service/:appointmentId", verifyToken, WorkerController.completeService);
 
 export default router;

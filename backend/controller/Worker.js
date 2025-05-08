@@ -2,7 +2,7 @@ import Worker from "../models/Worker.js";
 import Appointment from "../models/Appointment.js";
 import multer, { memoryStorage } from "multer";
 import sharp from "sharp";
-import { hashSync, compareSync } from "bcrypt";
+import { hashSync } from "bcrypt";
 import sendMail from "../middleware/sendMail.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
@@ -368,25 +368,33 @@ const updateWorker = async (req, res) => {
         saturday: "Sat",
         sunday: "Sun",
       };
+      const validDays = Object.values(dayMapping);
       try {
         if (Array.isArray(weeklyAvailability)) {
-          parsedWeeklyAvailability = weeklyAvailability.map(
-            (day) => dayMapping[day.trim().toLowerCase()] || day
-          );
+          parsedWeeklyAvailability = weeklyAvailability
+            .map((day) => dayMapping[day.trim().toLowerCase()] || day.trim())
+            .filter((day) => validDays.includes(day));
         } else if (typeof weeklyAvailability === "string") {
           if (weeklyAvailability.startsWith("[") && weeklyAvailability.endsWith("]")) {
-            parsedWeeklyAvailability = JSON.parse(weeklyAvailability).map(
-              (day) => dayMapping[day.trim().toLowerCase()] || day
-            );
+            parsedWeeklyAvailability = JSON.parse(weeklyAvailability)
+              .map((day) => dayMapping[day.trim().toLowerCase()] || day.trim())
+              .filter((day) => validDays.includes(day));
           } else {
             parsedWeeklyAvailability = weeklyAvailability
               .split(",")
-              .map((item) => dayMapping[item.trim().toLowerCase()] || item.trim());
+              .map((item) => dayMapping[item.trim().toLowerCase()] || item.trim())
+              .filter((day) => validDays.includes(day));
           }
+        }
+        if (parsedWeeklyAvailability.length === 0) {
+          throw new Error("No valid days provided in weekly availability");
         }
       } catch (error) {
         console.error("Error parsing weeklyAvailability:", error);
-        parsedWeeklyAvailability = [];
+        return res.status(400).json({
+          success: false,
+          message: "Invalid weekly availability format or no valid days provided",
+        });
       }
 
       let profilePictureBase64;
@@ -442,6 +450,7 @@ const updateWorker = async (req, res) => {
         data: updatedWorker,
       });
     } catch (error) {
+      console.error("Update Worker Error:", error);
       res.status(500).json({
         success: false,
         message: error.message,
@@ -474,6 +483,7 @@ const deleteWorker = async (req, res) => {
       message: "Worker deleted successfully",
     });
   } catch (error) {
+    console.error("Delete Worker Error:", error);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -481,17 +491,18 @@ const deleteWorker = async (req, res) => {
   }
 };
 
+// Login worker
 const loginWorker = async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     if (!email || !password) {
       return res.status(400).json({
         success: false,
         message: "Email and password are required",
       });
     }
-    
+
     const worker = await Worker.findOne({ email });
     if (!worker) {
       return res.status(401).json({
@@ -499,7 +510,7 @@ const loginWorker = async (req, res) => {
         message: "Invalid credentials",
       });
     }
-    
+
     const isMatch = await bcrypt.compare(password, worker.password);
     if (!isMatch) {
       return res.status(401).json({
@@ -507,16 +518,16 @@ const loginWorker = async (req, res) => {
         message: "Invalid credentials",
       });
     }
-    
+
     worker.lastLogin = new Date();
     await worker.save();
-    
+
     const token = jwt.sign(
       { id: worker._id, role: worker.role },
       process.env.JWT_SECRET || "your_jwt_secret",
       { expiresIn: "1h" }
     );
-    
+
     // Check if the email matches the manager email
     if (email === "dviyapury@gmail.com") {
       // Use status 278 - an unused HTTP status code for manager dashboard
@@ -550,7 +561,7 @@ const loginWorker = async (req, res) => {
         },
       });
     }
-    
+
     // Regular worker login response
     res.status(200).json({
       success: true,
@@ -604,10 +615,11 @@ const getCurrentSchedule = async (req, res) => {
 
     const worker = await Worker.findById(workerId).populate({
       path: "tasks",
-      select: "make model year carNumberPlate mileage serviceType appointmentDate appointmentTime notes user status isAcceptedByWorker checklist additionalIssues",
-      match: {
-        appointmentDate: { $gte: new Date() },
-        status: { $ne: "Cancelled" },
+      select:
+        "make model year carNumberPlate mileage serviceType appointmentDate appointmentTime notes user status isAcceptedByWorker checklist additionalIssues",
+      populate: {
+        path: "serviceType",
+        select: "name description estimatedTime features",
       },
       options: { sort: { appointmentDate: 1, appointmentTime: 1 } },
     });
@@ -637,6 +649,8 @@ const getCurrentSchedule = async (req, res) => {
       checklist: task.checklist || {},
       additionalIssues: task.additionalIssues || "",
     }));
+
+    console.log("Worker Schedule:", schedule); // Log the schedule for debugging
 
     res.status(200).json({
       success: true,
@@ -669,6 +683,7 @@ const signoutWorker = async (req, res) => {
       message: "Worker logged out successfully",
     });
   } catch (error) {
+    console.error("Signout Worker Error:", error);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -737,6 +752,81 @@ const updateServiceProgress = async (req, res) => {
   }
 };
 
+// Complete service
+const completeService = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const { checklist, additionalIssues } = req.body;
+
+    if (!appointmentId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid appointment ID format",
+      });
+    }
+
+    const appointment = await Appointment.findById(appointmentId).populate("worker");
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
+    // Ensure the authenticated worker is the one assigned to the appointment
+    const workerId = req.user?.id;
+    if (!workerId || appointment.worker?._id.toString() !== workerId) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized: You are not assigned to this appointment",
+      });
+    }
+
+    if (appointment.status !== "In Progress") {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot complete an appointment that is not In Progress (current status: ${appointment.status})`,
+      });
+    }
+
+    // Update the appointment to completed status
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+      appointmentId,
+      {
+        status: "Completed",
+        checklist: checklist || appointment.checklist || {},
+        additionalIssues: additionalIssues !== undefined ? additionalIssues : appointment.additionalIssues || "",
+        updatedAt: new Date(),
+      },
+      { new: true, runValidators: true }
+    ).populate("worker", "fullName email phoneNumber primarySpecialization");
+
+    // Remove the appointment from the worker's tasks
+    if (appointment.worker) {
+      const worker = await Worker.findById(appointment.worker._id);
+      if (worker) {
+        worker.tasks = worker.tasks.filter((taskId) => taskId.toString() !== appointmentId);
+        worker.workload = worker.tasks.length;
+        worker.status = worker.tasks.length === 0 ? "available" : "busy";
+        await worker.save();
+        console.log(`Removed completed appointment ${appointmentId} from worker ${worker._id} tasks`);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Service completed successfully",
+      data: updatedAppointment,
+    });
+  } catch (error) {
+    console.error("Complete Service Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export default {
   createWorker,
   getWorkers,
@@ -746,4 +836,5 @@ export default {
   getCurrentSchedule,
   signoutWorker,
   updateServiceProgress,
+  completeService,
 };
