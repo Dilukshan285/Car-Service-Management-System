@@ -10,6 +10,9 @@ import RecoveryPage from "./pages/Recovery_email.jsx";
 import RecoveryOTP from "./pages/Recovery_OTP.jsx";
 import RecoveryPassword from "./pages/Recovery_Password.jsx";
 import Unauthorized from "./pages/Unauthorized.jsx";
+import ServiceType from "../src/pages/venushan/servicetype.jsx";
+import GetService from './pages/venushan/getservice.jsx';
+import UpdateServiceType from './pages/venushan/updateServiceType.jsx';
 
 import UserHome from "./pages/Home.jsx";
 
@@ -114,6 +117,9 @@ function AppWrapper() {
           <Route path="/booking" element={<BookingForm />} />
           <Route path="/AI" element={<ImageUploadForm />} />
           <Route path="/my-bookings" element={<MyAppointments />} />
+          <Route path="/service" element={<ServiceType />} />
+          <Route path="/get" element={<GetService />} />
+          <Route path="/update-service/:id" element={<UpdateServiceType />} />
         </Routes>
       </main>
     </div>
