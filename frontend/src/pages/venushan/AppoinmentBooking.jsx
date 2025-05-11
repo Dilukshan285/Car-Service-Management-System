@@ -7,6 +7,43 @@ import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { jsPDF } from "jspdf";
 import axios from "axios";
+import { z } from "zod";
+
+const sriLankanVehicleNumberRegex = /^(?:[A-Z]{2,3}-[0-9]{4}|[0-9]{2}-[A-Z]{2,3}-[0-9]{1,4}|[0-9]{3}-[0-9]{4}|[A-Z]{1}-[0-9]{4})$/;
+
+const formSchema = z.object({
+  make: z.string().min(1, "Make is required").max(50, "Make must be 50 characters or less"),
+  model: z.string().min(1, "Model is required").max(50, "Model must be 50 characters or less"),
+  year: z
+    .string()
+    .regex(/^\d{4}$/, "Year must be a 4-digit number")
+    .refine(
+      (val) => {
+        const year = parseInt(val);
+        const currentYear = new Date().getFullYear();
+        return year >= 1900 && year <= currentYear;
+      },
+      `Year must be between 1900 and ${new Date().getFullYear()}`
+    ),
+  carNumberPlate: z
+    .string()
+    .min(1, "Vehicle number is required")
+    .regex(
+      sriLankanVehicleNumberRegex,
+      "Invalid Sri Lankan vehicle number. Examples: WP-1234, CAA-1234, 12-SRI-1234, 123-1234, G-1234"
+    ),
+  mileage: z
+    .string()
+    .regex(/^\d+$/, "Mileage must be a positive number")
+    .refine((val) => parseInt(val) >= 0, "Mileage cannot be negative"),
+  serviceType: z.string().min(1, "Service type is required"),
+  appointmentDate: z.date({ required_error: "Appointment date is required" }).refine(
+    (date) => date >= new Date(new Date().setHours(0, 0, 0, 0)),
+    "Appointment date cannot be in the past"
+  ),
+  appointmentTime: z.string().min(1, "Appointment time is required"),
+  notes: z.string().max(500, "Notes must be 500 characters or less").optional(),
+});
 
 const BookingForm = () => {
   const navigate = useNavigate();
@@ -22,6 +59,8 @@ const BookingForm = () => {
     appointmentTime: "",
     notes: "",
   });
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [serviceTypes, setServiceTypes] = useState([]);
@@ -32,14 +71,46 @@ const BookingForm = () => {
   useEffect(() => {
     const fetchServiceTypes = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/service-types");
-        setServiceTypes(response.data.data || []);
-        if (response.data.data.length > 0) {
-          setFormData((prev) => ({ ...prev, serviceType: response.data.data[0]._id }));
-          setSelectedService(response.data.data[0]);
+        const response = await axios.get("http://localhost:5000/api/service-types", {
+          timeout: 5000,
+        });
+        const services = response.data.data || [];
+        console.log("Fetched service types:", services);
+        if (services.length === 0) {
+          const defaultService = {
+            _id: "default",
+            name: "General Service",
+            estimatedTime: 60,
+            description: "Basic vehicle check-up",
+            features: ["Oil check", "Tire inspection"],
+          };
+          setServiceTypes([defaultService]);
+          setFormData((prev) => ({ ...prev, serviceType: defaultService._id }));
+          setSelectedService(defaultService);
+          validateField("serviceType", defaultService._id);
+        } else {
+          setServiceTypes(services);
+          setFormData((prev) => ({ ...prev, serviceType: services[0]._id }));
+          setSelectedService(services[0]);
+          validateField("serviceType", services[0]._id);
         }
       } catch (error) {
         console.error("Error fetching service types:", error);
+        const defaultService = {
+          _id: "default",
+          name: "General Service",
+          estimatedTime: 60,
+          description: "Basic vehicle check-up",
+          features: ["Oil check", "Tire inspection"],
+        };
+        setServiceTypes([defaultService]);
+        setFormData((prev) => ({ ...prev, serviceType: defaultService._id }));
+        setSelectedService(defaultService);
+        validateField("serviceType", defaultService._id);
+        setErrors((prev) => ({
+          ...prev,
+          form: "Failed to load service types. Using default service.",
+        }));
       }
     };
     fetchServiceTypes();
@@ -59,73 +130,111 @@ const BookingForm = () => {
   useEffect(() => {
     if (!selectedService || !selectedService.estimatedTime) {
       setAvailableTimeSlots([]);
+      setFormData((prev) => ({ ...prev, appointmentTime: "" }));
+      validateField("appointmentTime", "");
       return;
     }
 
     const durationMinutes = parseInt(selectedService.estimatedTime);
-    const durationHours = Math.ceil(durationMinutes / 60); // Round up to nearest hour
+    const durationHours = Math.ceil(durationMinutes / 60);
 
-    // Define working hours (9:00 AM to 5:00 PM)
-    const startHour = 9; // 9:00 AM
-    const endHour = 17; // 5:00 PM
+    const startHour = 9;
+    const endHour = 17;
     const timeSlots = [];
 
-    // Generate time slots based on duration
     for (let hour = startHour; hour + durationHours <= endHour; ) {
       const startTimeHour = hour;
       const endTimeHour = hour + durationHours;
 
-      // Format start time
       const startPeriod = startTimeHour >= 12 ? "PM" : "AM";
       const startHourFormatted = startTimeHour > 12 ? startTimeHour - 12 : startTimeHour === 0 ? 12 : startTimeHour;
       const startTime = `${startHourFormatted}:00 ${startPeriod}`;
 
-      // Format end time
       const endPeriod = endTimeHour >= 12 ? "PM" : "AM";
       const endHourFormatted = endTimeHour > 12 ? endTimeHour - 12 : endTimeHour === 0 ? 12 : endTimeHour;
       const endTime = `${endHourFormatted}:00 ${endPeriod}`;
 
-      // Create slot (e.g., "9:00 AM - 10:00 AM" for 60 minutes)
       const slot = `${startTime} - ${endTime}`;
       timeSlots.push({ display: slot, start: `${startTimeHour.toString().padStart(2, "0")}:00` });
 
-      // Increment hour based on duration
       hour += durationHours;
 
-      // Adjust for lunch break (12:00 PM to 1:00 PM)
       if (hour >= 12 && hour < 13) {
-        hour = 13; // Skip to 1:00 PM
+        hour = 13;
       }
     }
 
+    console.log("Generated time slots:", timeSlots);
     setAvailableTimeSlots(timeSlots);
 
-    // Reset appointmentTime if current selection is invalid
-    if (!timeSlots.some((slot) => slot.start === formData.appointmentTime)) {
-      setFormData((prev) => ({ ...prev, appointmentTime: timeSlots[0]?.start || "" }));
+    if (timeSlots.length > 0 && !timeSlots.some((slot) => slot.start === formData.appointmentTime)) {
+      setFormData((prev) => ({ ...prev, appointmentTime: timeSlots[0].start }));
+      validateField("appointmentTime", timeSlots[0].start);
+    } else if (timeSlots.length === 0) {
+      setFormData((prev) => ({ ...prev, appointmentTime: "" }));
+      validateField("appointmentTime", "");
     }
   }, [selectedService]);
+
+  // Validate individual field
+  const validateField = (name, value) => {
+    try {
+      const schema = formSchema.pick({ [name]: formSchema.shape[name] });
+      schema.parse({ [name]: value });
+      setErrors((prev) => ({ ...prev, [name]: null }));
+    } catch (error) {
+      setErrors((prev) => ({ ...prev, [name]: error.errors[0].message }));
+    }
+  };
+
+  // Validate entire form
+  const validateForm = () => {
+    try {
+      formSchema.parse(formData);
+      setErrors((prev) => ({ ...prev, form: null }));
+      return true;
+    } catch (error) {
+      const newErrors = {};
+      error.errors.forEach((err) => {
+        newErrors[err.path[0]] = err.message;
+      });
+      setErrors((prev) => ({ ...prev, ...newErrors }));
+      console.log("Form validation errors:", newErrors);
+      return false;
+    }
+  };
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
+    setTouched((prev) => ({ ...prev, [id]: true }));
+    if (touched[id] || value) {
+      validateField(id, value);
+    }
   };
 
   const handleServiceTypeChange = (e) => {
     const serviceId = e.target.value;
     setFormData((prev) => ({ ...prev, serviceType: serviceId }));
+    setTouched((prev) => ({ ...prev, serviceType: true }));
+    validateField("serviceType", serviceId);
     const service = serviceTypes.find((s) => s._id === serviceId);
     setSelectedService(service);
   };
 
   const handleDateSelect = (newDate) => {
     setFormData((prev) => ({ ...prev, appointmentDate: newDate }));
+    setTouched((prev) => ({ ...prev, appointmentDate: true }));
+    validateField("appointmentDate", newDate);
     setIsCalendarOpen(false);
   };
 
   const handleTimeChange = (e) => {
     const selectedSlot = availableTimeSlots.find((slot) => slot.display === e.target.value);
-    setFormData((prev) => ({ ...prev, appointmentTime: selectedSlot ? selectedSlot.start : "" }));
+    const newTime = selectedSlot ? selectedSlot.start : "";
+    setFormData((prev) => ({ ...prev, appointmentTime: newTime }));
+    setTouched((prev) => ({ ...prev, appointmentTime: true }));
+    validateField("appointmentTime", newTime);
   };
 
   const handleSubmit = async (e) => {
@@ -133,6 +242,23 @@ const BookingForm = () => {
 
     if (!currentUser) {
       navigate("/sign-in");
+      return;
+    }
+
+    setTouched({
+      make: true,
+      model: true,
+      year: true,
+      carNumberPlate: true,
+      mileage: true,
+      serviceType: true,
+      appointmentDate: true,
+      appointmentTime: true,
+      notes: true,
+    });
+
+    if (!validateForm()) {
+      console.log("Form validation failed:", errors);
       return;
     }
 
@@ -154,6 +280,7 @@ const BookingForm = () => {
             ? format(formData.appointmentDate, "yyyy-MM-dd")
             : null,
         }),
+        timeout: 10000,
       });
 
       const data = await response.json();
@@ -166,6 +293,7 @@ const BookingForm = () => {
       }
     } catch (error) {
       console.error("Booking error:", error);
+      setErrors((prev) => ({ ...prev, form: error.message }));
     } finally {
       setLoading(false);
     }
@@ -174,6 +302,23 @@ const BookingForm = () => {
   const handleDownloadPDF = () => {
     if (!currentUser) {
       navigate("/sign-in");
+      return;
+    }
+
+    setTouched({
+      make: true,
+      model: true,
+      year: true,
+      carNumberPlate: true,
+      mileage: true,
+      serviceType: true,
+      appointmentDate: true,
+      appointmentTime: true,
+      notes: true,
+    });
+
+    if (!validateForm()) {
+      console.log("Cannot download PDF: Form is invalid", errors);
       return;
     }
 
@@ -228,6 +373,9 @@ const BookingForm = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-10">
+          {errors.form && (
+            <div className="text-red-500 text-sm p-4 bg-red-50 rounded-lg">{errors.form}</div>
+          )}
           <div className="space-y-6">
             <h3 className="text-xl font-semibold text-gray-800">Car Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -238,9 +386,11 @@ const BookingForm = () => {
                   value={formData.make}
                   onChange={handleInputChange}
                   placeholder="Toyota"
-                  required
-                  className="w-full rounded-lg border border-gray-300 p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className={`w-full rounded-lg border p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                    touched.make && errors.make ? "border-red-500" : "border-gray-300"
+                  }`}
                 />
+                {touched.make && errors.make && <p className="text-red-500 text-xs">{errors.make}</p>}
               </div>
               <div className="space-y-2">
                 <label htmlFor="model" className="text-sm font-semibold text-gray-800">Model</label>
@@ -249,9 +399,11 @@ const BookingForm = () => {
                   value={formData.model}
                   onChange={handleInputChange}
                   placeholder="Camry"
-                  required
-                  className="w-full rounded-lg border border-gray-300 p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className={`w-full rounded-lg border p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                    touched.model && errors.model ? "border-red-500" : "border-gray-300"
+                  }`}
                 />
+                {touched.model && errors.model && <p className="text-red-500 text-xs">{errors.model}</p>}
               </div>
               <div className="space-y-2">
                 <label htmlFor="year" className="text-sm font-semibold text-gray-800">Year</label>
@@ -260,9 +412,11 @@ const BookingForm = () => {
                   value={formData.year}
                   onChange={handleInputChange}
                   placeholder="2020"
-                  required
-                  className="w-full rounded-lg border border-gray-300 p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className={`w-full rounded-lg border p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                    touched.year && errors.year ? "border-red-500" : "border-gray-300"
+                  }`}
                 />
+                {touched.year && errors.year && <p className="text-red-500 text-xs">{errors.year}</p>}
               </div>
               <div className="space-y-2">
                 <label htmlFor="carNumberPlate" className="text-sm font-semibold text-gray-800">License Plate</label>
@@ -270,10 +424,14 @@ const BookingForm = () => {
                   id="carNumberPlate"
                   value={formData.carNumberPlate}
                   onChange={handleInputChange}
-                  placeholder="ABC-1234"
-                  required
-                  className="w-full rounded-lg border border-gray-300 p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  placeholder="WP-1234"
+                  className={`w-full rounded-lg border p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                    touched.carNumberPlate && errors.carNumberPlate ? "border-red-500" : "border-gray-300"
+                  }`}
                 />
+                {touched.carNumberPlate && errors.carNumberPlate && (
+                  <p className="text-red-500 text-xs">{errors.carNumberPlate}</p>
+                )}
               </div>
               <div className="space-y-2 md:col-span-2">
                 <label htmlFor="mileage" className="text-sm font-semibold text-gray-800">Current Mileage</label>
@@ -281,10 +439,12 @@ const BookingForm = () => {
                   id="mileage"
                   value={formData.mileage}
                   onChange={handleInputChange}
-                  placeholder="50,000"
-                  required
-                  className="w-full rounded-lg border border-gray-300 p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  placeholder="50000"
+                  className={`w-full rounded-lg border p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                    touched.mileage && errors.mileage ? "border-red-500" : "border-gray-300"
+                  }`}
                 />
+                {touched.mileage && errors.mileage && <p className="text-red-500 text-xs">{errors.mileage}</p>}
               </div>
             </div>
           </div>
@@ -296,7 +456,9 @@ const BookingForm = () => {
                 id="serviceType"
                 value={formData.serviceType}
                 onChange={handleServiceTypeChange}
-                className="w-full rounded-lg border border-gray-300 p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:bg-gray-100"
+                className={`w-full rounded-lg border p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:bg-gray-100 ${
+                  touched.serviceType && errors.serviceType ? "border-red-500" : "border-gray-300"
+                }`}
               >
                 {serviceTypes.map((service) => (
                   <option key={service._id} value={service._id}>
@@ -304,6 +466,9 @@ const BookingForm = () => {
                   </option>
                 ))}
               </select>
+              {touched.serviceType && errors.serviceType && (
+                <p className="text-red-500 text-xs">{errors.serviceType}</p>
+              )}
               {selectedService && (
                 <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg shadow-sm">
                   <p className="text-sm text-gray-700 mb-2">{selectedService.description}</p>
@@ -328,7 +493,9 @@ const BookingForm = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-semibold text-gray-800">Car Images</h3>
-                <p className="text-sm text-gray-600">Optional: Upload photos of your car and we can address the damage via AI</p>
+                <p className="text-sm text-gray-600">
+                  Optional: Upload photos of your car and we can address the damage via AI
+                </p>
               </div>
               <Link to="/AI">
                 <button
@@ -351,7 +518,9 @@ const BookingForm = () => {
                   <button
                     type="button"
                     onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                    className="w-full flex items-center justify-start border border-gray-300 rounded-lg p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:bg-gray-100"
+                    className={`w-full flex items-center justify-start border p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:bg-gray-100 ${
+                      touched.appointmentDate && errors.appointmentDate ? "border-red-500" : "border-gray-300"
+                    }`}
                   >
                     <CalendarIcon className="mr-2 h-5 w-5 text-gray-600" />
                     {formData.appointmentDate
@@ -372,6 +541,9 @@ const BookingForm = () => {
                     </div>
                   )}
                 </div>
+                {touched.appointmentDate && errors.appointmentDate && (
+                  <p className="text-red-500 text-xs">{errors.appointmentDate}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <label htmlFor="time" className="text-sm font-semibold text-gray-800">Preferred Time</label>
@@ -379,8 +551,9 @@ const BookingForm = () => {
                   id="time"
                   value={availableTimeSlots.find((slot) => slot.start === formData.appointmentTime)?.display || ""}
                   onChange={handleTimeChange}
-                  disabled={availableTimeSlots.length === 0}
-                  className="w-full rounded-lg border border-gray-300 p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:bg-gray-100"
+                  className={`w-full rounded-lg border p-3 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:bg-gray-100 ${
+                    touched.appointmentTime && errors.appointmentTime ? "border-red-500" : "border-gray-300"
+                  }`}
                 >
                   <option value="">Select a time slot</option>
                   {availableTimeSlots.map((slot, index) => (
@@ -389,6 +562,9 @@ const BookingForm = () => {
                     </option>
                   ))}
                 </select>
+                {touched.appointmentTime && errors.appointmentTime && (
+                  <p className="text-red-500 text-xs">{errors.appointmentTime}</p>
+                )}
               </div>
             </div>
           </div>
@@ -400,8 +576,11 @@ const BookingForm = () => {
               value={formData.notes}
               onChange={handleInputChange}
               placeholder="Describe any specific issues or concerns about your vehicle"
-              className="w-full min-h-[120px] rounded-lg border border-gray-300 p-4 text-gray-700 bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
+              className={`w-full min-h-[120px] rounded-lg border p-4 text-gray-700 bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none ${
+                touched.notes && errors.notes ? "border-red-500" : "border-gray-300"
+              }`}
             />
+            {touched.notes && errors.notes && <p className="text-red-500 text-xs">{errors.notes}</p>}
           </div>
 
           <div className="flex justify-between items-center mt-10">
@@ -422,12 +601,7 @@ const BookingForm = () => {
               </button>
               <button
                 type="submit"
-                disabled={loading}
-                className={`px-6 py-3 rounded-lg font-semibold text-white transition-all duration-300 shadow-md ${
-                  loading
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg"
-                }`}
+                className="px-6 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-md hover:shadow-lg"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">

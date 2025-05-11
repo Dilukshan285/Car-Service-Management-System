@@ -187,74 +187,76 @@ const AppointmentCard = ({ appointment, activeTab, workers, onWorkerAssigned, on
       </div>
 
       {localAppointment.worker ? (
-        <div className="mt-6">
-          <p className="text-sm text-gray-500 mb-2">Assigned Worker:</p>
-          <div className="flex items-center space-x-3">
-            <svg className="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            <p className="text-base text-gray-700">{localAppointment.worker.fullName || "N/A"}</p>
-          </div>
+  <div className="mt-6">
+    <p className="text-sm text-gray-500 mb-2">Assigned Worker:</p>
+    <div className="flex items-center space-x-3">
+      <svg className="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+      <p className="text-base text-gray-700">{localAppointment.worker.fullName || "N/A"}</p>
+    </div>
+    {localAppointment.status !== "Completed" && (
+      <button
+        className={`mt-4 w-full bg-red-500 text-white rounded-md py-2 px-4 text-sm hover:bg-red-600 transition-all duration-200 ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+        onClick={handleUnassignWorker}
+        disabled={loading}
+      >
+        {loading ? "Unassigning..." : "Unassign Worker"}
+      </button>
+    )}
+    {localAppointment.isAcceptedByWorker && (
+      <button
+        className="mt-2 w-full bg-blue-600 text-white rounded-md py-2 px-4 text-sm hover:bg-blue-700 transition-all duration-200"
+        onClick={handleViewProgress}
+      >
+        View Progress
+      </button>
+    )}
+  </div>
+) : (
+  <div>
+    {!isAssigning ? (
+      <button
+        className="mt-6 w-full bg-blue-600 text-white rounded-md py-2 px-4 text-sm hover:bg-blue-700 transition-all duration-200"
+        onClick={() => setIsAssigning(true)}
+      >
+        Assign Worker
+      </button>
+    ) : (
+      <div className="mt-6">
+        <select
+          className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 px-4 text-base text-gray-700 mb-3 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          value={selectedWorker}
+          onChange={(e) => setSelectedWorker(e.target.value)}
+          disabled={loading}
+        >
+          <option value="">Select a worker</option>
+          {workers.map((worker) => (
+            <option key={worker._id} value={worker.fullName}>
+              {worker.fullName} - {worker.primarySpecialization}
+            </option>
+          ))}
+        </select>
+        <div className="flex justify-between space-x-3">
           <button
-            className={`mt-4 w-full bg-red-500 text-white rounded-md py-2 px-4 text-sm hover:bg-red-600 transition-all duration-200 ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-            onClick={handleUnassignWorker}
+            className="w-1/2 bg-gray-200 text-gray-700 rounded-md py-2 px-4 text-sm hover:bg-gray-300 transition-all duration-200"
+            onClick={() => setIsAssigning(false)}
             disabled={loading}
           >
-            {loading ? "Unassigning..." : "Unassign Worker"}
+            Cancel
           </button>
-          {localAppointment.isAcceptedByWorker && (
-            <button
-              className="mt-2 w-full bg-blue-600 text-white rounded-md py-2 px-4 text-sm hover:bg-blue-700 transition-all duration-200"
-              onClick={handleViewProgress}
-            >
-              View Progress
-            </button>
-          )}
+          <button
+            className={`w-1/2 bg-blue-600 text-white rounded-md py-2 px-4 text-sm hover:bg-blue-700 transition-all duration-200 ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+            onClick={handleConfirmAssign}
+            disabled={loading}
+          >
+            {loading ? "Assigning..." : "Confirm"}
+          </button>
         </div>
-      ) : (
-        <div>
-          {!isAssigning ? (
-            <button
-              className="mt-6 w-full bg-blue-600 text-white rounded-md py-2 px-4 text-sm hover:bg-blue-700 transition-all duration-200"
-              onClick={() => setIsAssigning(true)}
-            >
-              Assign Worker
-            </button>
-          ) : (
-            <div className="mt-6">
-              <select
-                className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 px-4 text-base text-gray-700 mb-3 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                value={selectedWorker}
-                onChange={(e) => setSelectedWorker(e.target.value)}
-                disabled={loading}
-              >
-                <option value="">Select a worker</option>
-                {workers.map((worker) => (
-                  <option key={worker._id} value={worker.fullName}>
-                    {worker.fullName} - {worker.primarySpecialization}
-                  </option>
-                ))}
-              </select>
-              <div className="flex justify-between space-x-3">
-                <button
-                  className="w-1/2 bg-gray-200 text-gray-700 rounded-md py-2 px-4 text-sm hover:bg-gray-300 transition-all duration-200"
-                  onClick={() => setIsAssigning(false)}
-                  disabled={loading}
-                >
-                  Cancel
-                </button>
-                <button
-                  className={`w-1/2 bg-blue-600 text-white rounded-md py-2 px-4 text-sm hover:bg-blue-700 transition-all duration-200 ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-                  onClick={handleConfirmAssign}
-                  disabled={loading}
-                >
-                  {loading ? "Assigning..." : "Confirm"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      </div>
+    )}
+  </div>
+)}
     </div>
   );
 };
