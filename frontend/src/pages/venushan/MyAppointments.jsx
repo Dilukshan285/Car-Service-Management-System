@@ -106,7 +106,7 @@ const MyAppointments = () => {
       default:
         return "bg-yellow-100 text-yellow-800";
     }
-};
+  };
 
   if (!currentUser) {
     return null;
@@ -228,7 +228,7 @@ const MyAppointments = () => {
                     {expandedCard === appointment._id ? "Hide Details" : "View Details"}
                   </button>
                   <div className="flex space-x-2">
-                    {appointment.isAcceptedByWorker && appointment.status !== "Completed" && appointment.status !== "Cancelled" && (
+                    {(appointment.isAcceptedByWorker || appointment.status === "Completed") && appointment.status !== "Cancelled" && (
                       <button
                         onClick={() => handleViewProgress(appointment)}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all duration-300"
