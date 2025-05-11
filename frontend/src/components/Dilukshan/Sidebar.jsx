@@ -1,5 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
+import { Home, Calendar, Users, Clock, List, BarChart2, Package } from "lucide-react";
 
 const Sidebar = () => {
   return (
@@ -33,20 +34,7 @@ const Sidebar = () => {
             }`
           }
         >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-            ></path>
-          </svg>
+          <Home className="h-5 w-5" />
           <span>Dashboard</span>
         </NavLink>
         <NavLink
@@ -57,20 +45,7 @@ const Sidebar = () => {
             }`
           }
         >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            ></path>
-          </svg>
+          <Calendar className="h-5 w-5" />
           <span>Appointments</span>
         </NavLink>
         <NavLink
@@ -81,45 +56,30 @@ const Sidebar = () => {
             }`
           }
         >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-            ></path>
-          </svg>
+          <Users className="h-5 w-5" />
           <span>Workers</span>
         </NavLink>
         <NavLink
-          to="/services"
+          to="/service"
           className={({ isActive }) =>
             `flex items-center space-x-2 p-2 rounded-lg ${
               isActive ? "bg-gray-700 text-white" : "text-gray-400 hover:bg-gray-800"
             }`
           }
         >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
-          </svg>
+          <Clock className="h-5 w-5" />
           <span>Services</span>
+        </NavLink>
+        <NavLink
+          to="/get"
+          className={({ isActive }) =>
+            `flex items-center space-x-2 p-2 rounded-lg ${
+              isActive ? "bg-gray-700 text-white" : "text-gray-400 hover:bg-gray-800"
+            }`
+          }
+        >
+          <List className="h-5 w-5" />
+          <span>All Services</span>
         </NavLink>
         <NavLink
           to="/analytics"
@@ -129,21 +89,19 @@ const Sidebar = () => {
             }`
           }
         >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-            ></path>
-          </svg>
+          <BarChart2 className="h-5 w-5" />
           <span>Analytics</span>
+        </NavLink>
+         <NavLink
+          to="/Product"
+          className={({ isActive }) =>
+            `flex items-center space-x-2 p-2 rounded-lg ${
+              isActive ? "bg-gray-700 text-white" : "text-gray-400 hover:bg-gray-800"
+            }`
+          }
+        >
+          <Package className="h-5 w-5" />
+          <span>Products</span>
         </NavLink>
       </nav>
     </div>
